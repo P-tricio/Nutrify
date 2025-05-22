@@ -1,7 +1,10 @@
 import express from "express";
 import { body, validationResult } from "express-validator";
+import dotenv from 'dotenv';
+import fetch from 'node-fetch';
+
 const router = express.Router();
-require('dotenv').config();
+dotenv.config();
 
 // Configuración de la API
 const API_CONFIG = {
