@@ -8,14 +8,31 @@ import autoprefixer from 'autoprefixer';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
+  define: {
+    'process.env': {}
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: mode !== 'production',
+    minify: mode === 'production' ? 'terser' : false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          vendor: ['react-router-dom']
+        }
+      }
+    }
+  },
   server: {
     port: 5173,
-    open: true,
-    proxy: {
+    open: !process.env.VERCEL,
+    proxy: process.env.VERCEL ? undefined : {
       '/api': {
-        target: 'http://localhost:4000',
+        target: process.env.VITE_API_URL || 'http://localhost:4000',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -26,8 +43,7 @@ export default defineConfig({
           proxy.on('proxyReq', (proxyReq, req, _res) => {
             console.log('Enviando solicitud al backend:', {
               method: req.method,
-              url: req.url,
-              headers: req.headers
+              url: req.url
             });
           });
           proxy.on('proxyRes', (proxyRes, req, _res) => {
@@ -38,23 +54,22 @@ export default defineConfig({
             });
           });
         }
-      },
-    },
+      }
+    }
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '~': path.resolve(__dirname, './node_modules')
     },
+    extensions: ['.js', '.jsx', '.json']
   },
   css: {
     postcss: {
       plugins: [
         tailwindcss,
-        autoprefixer,
-      ],
-    },
-  },
-  define: {
-    'process.env': {}
+        autoprefixer
+      ]
+    }
   }
-});
+}));
