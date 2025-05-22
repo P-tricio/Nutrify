@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => ({
   },
   server: {
     port: 5173,
-    open: !process.env.VERCEL,
+    open: process.env.NODE_ENV !== 'production' && !process.env.VERCEL,
     proxy: process.env.VERCEL ? undefined : {
       '/api': {
         target: process.env.VITE_API_URL || 'http://localhost:4000',
