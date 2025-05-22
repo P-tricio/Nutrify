@@ -1,0 +1,476 @@
+import { useState, useEffect } from "react";
+import FormInput from "./components/FormInput";
+import MealCard from "./components/MealCard";
+import LoadingSpinner from "./components/LoadingSpinner";
+
+// Opciones para los selects
+const goalOptions = [
+  { value: 'perdida_peso', label: 'Pérdida de peso' },
+  { value: 'mantenimiento', label: 'Mantenimiento' },
+  { value: 'ganancia_muscular', label: 'Ganancia muscular' },
+  { value: 'definicion', label: 'Definición muscular' },
+];
+
+const preferenceOptions = [
+  { value: 'omnivoro', label: 'Omnívoro' },
+  { value: 'vegetariano', label: 'Vegetariano' },
+  { value: 'vegano', label: 'Vegano' },
+  { value: 'sin_gluten', label: 'Sin gluten' },
+  { value: 'sin_lactosa', label: 'Sin lactosa' },
+];
+
+const supermarketOptions = [
+  { value: 'mercadona', label: 'Mercadona' },
+  { value: 'carrefour', label: 'Carrefour' },
+  { value: 'lidl', label: 'Lidl' },
+  { value: 'alcampo', label: 'Alcampo' },
+  { value: 'otro', label: 'Otro' },
+];
+
+function App() {
+  const [formData, setFormData] = useState({
+    calories: '',
+    mealsPerDay: '3',
+    allergies: '',
+    preferences: '',
+    forbiddenFoods: '',
+    timePerMeal: '30',
+    goal: '',
+    favoriteFoods: ''
+  });
+
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
+  const [diet, setDiet] = useState(null);
+  const [showForm, setShowForm] = useState(true);
+  const [isValid, setIsValid] = useState(true);
+
+  // Validar el formulario
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.calories || isNaN(formData.calories) || formData.calories < 1000 || formData.calories > 5000) {
+      newErrors.calories = 'Por favor, introduce un número válido entre 1000 y 5000 kcal';
+    }
+    
+    if (!formData.mealsPerDay || isNaN(formData.mealsPerDay) || formData.mealsPerDay < 1 || formData.mealsPerDay > 6) {
+      newErrors.mealsPerDay = 'Por favor, introduce un número entre 1 y 6';
+    }
+    
+    if (!formData.timePerMeal || isNaN(formData.timePerMeal) || formData.timePerMeal < 5 || formData.timePerMeal > 120) {
+      newErrors.timePerMeal = 'Por favor, introduce un número entre 5 y 120 minutos';
+    }
+    
+    if (!formData.goal) {
+      newErrors.goal = 'Por favor, selecciona un objetivo';
+    }
+    
+    if (!formData.preferences) {
+      newErrors.preferences = 'Por favor, selecciona tus preferencias alimentarias';
+    }
+    
+
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleValidation = () => {
+    const isValid = validateForm();
+    setIsValid(isValid);
+    return isValid;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Limpiar el error cuando el usuario comienza a escribir
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: null
+      }));
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Forzar la validación completa al enviar
+    const isValid = validateForm();
+    
+    if (!isValid) {
+      console.log('Validación del formulario fallida');
+      return;
+    }
+    
+    setIsLoading(true);
+    setApiError(null);
+    
+    try {
+      const requestBody = {
+        ...formData,
+        // Asegurarse de que los números se envíen como números
+        calories: parseInt(formData.calories, 10) || 0,
+        mealsPerDay: parseInt(formData.mealsPerDay, 10) || 3,
+        timePerMeal: parseInt(formData.timePerMeal, 10) || 30
+      };
+      
+      console.log('Enviando solicitud a /api/ con datos:', JSON.stringify(requestBody, null, 2));
+      
+      const res = await fetch("/api/", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        credentials: 'include',
+        body: JSON.stringify(requestBody)
+      });
+      
+      console.log('Respuesta recibida. Status:', res.status);
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Error al generar la dieta. Inténtalo de nuevo más tarde.');
+      }
+
+      const data = await res.json();
+      setDiet(data.success ? data.plan : null);
+      setShowForm(false);
+    } catch (err) {
+      setApiError(err.message);
+      console.error('Error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-300 to-blue-600 shadow-lg transform -skew-y-6 sm:skew-y-0 sm:-rotate-6 sm:rounded-3xl"></div>
+          <div className="relative bg-white shadow-lg rounded-2xl p-6 sm:p-8">
+            <div className="max-w-4xl mx-auto">
+              {isLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <LoadingSpinner />
+                </div>
+              ) : showForm ? (
+                <div className="divide-y divide-gray-200">
+                  <div className="py-8 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
+                    <h1 className="text-3xl font-bold text-center mb-8">Generador de Dietas</h1>
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                      {apiError && (
+                        <div className="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                          {apiError}
+                        </div>
+                      )}
+                      
+                      <div className="space-y-4">
+                        <FormInput
+                          label="Calorías diarias"
+                          name="calories"
+                          type="number"
+                          min="1000"
+                          max="5000"
+                          step="100"
+                          value={formData.calories}
+                          onChange={handleChange}
+                          error={errors.calories}
+                          required
+                        />
+                        <FormInput
+                          label="Comidas por día"
+                          name="mealsPerDay"
+                          type="number"
+                          min="1"
+                          max="6"
+                          value={formData.mealsPerDay}
+                          onChange={handleChange}
+                          error={errors.mealsPerDay}
+                          required
+                        />
+                        <FormInput
+                          label="Tiempo máximo por comida (minutos)"
+                          name="timePerMeal"
+                          type="number"
+                          min="5"
+                          max="120"
+                          value={formData.timePerMeal}
+                          onChange={handleChange}
+                          error={errors.timePerMeal}
+                          required
+                        />
+                        <FormInput
+                          label="Objetivo"
+                          name="goal"
+                          type="select"
+                          options={goalOptions}
+                          value={formData.goal}
+                          onChange={handleChange}
+                          error={errors.goal}
+                          required
+                        />
+
+
+                        <FormInput
+                          label="Preferencias alimentarias"
+                          name="preferences"
+                          type="select"
+                          options={preferenceOptions}
+                          value={formData.preferences}
+                          onChange={handleChange}
+                          error={errors.preferences}
+                          required
+                        />
+                        <FormInput
+                          label="Alergias"
+                          name="allergies"
+                          type="text"
+                          placeholder="Separadas por comas"
+                          value={formData.allergies}
+                          onChange={handleChange}
+                          error={errors.allergies}
+                        />
+                        <FormInput
+                          label="Alimentos prohibidos"
+                          name="forbiddenFoods"
+                          type="text"
+                          placeholder="Separados por comas"
+                          value={formData.forbiddenFoods}
+                          onChange={handleChange}
+                          error={errors.forbiddenFoods}
+                        />
+                        <FormInput
+                          label="Alimentos favoritos"
+                          name="favoriteFoods"
+                          type="text"
+                          placeholder="Ejemplo: pizza, hamburguesa, pasta, etc."
+                          value={formData.favoriteFoods}
+                          onChange={handleChange}
+                          error={errors.favoriteFoods}
+                        />
+                      </div>
+                      
+                      <div className="pt-4">
+                        <button
+                          type="submit"
+                          disabled={isLoading || !isValid}
+                          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isLoading ? 'Generando...' : 'Generar Dieta'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-10 bg-white shadow overflow-hidden rounded-lg">
+                  <div className="bg-white p-4 rounded-lg shadow-lg">
+                    <div className="w-full">
+                      <h2 className="text-2xl font-bold mb-6">Resumen de tu dieta</h2>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <h3 className="text-lg font-semibold mb-2">Objetivo</h3>
+                          <p className="text-gray-600">{diet.summary?.goal}</p>
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <h3 className="text-lg font-semibold mb-2">Calorías totales</h3>
+                          <p className="text-2xl font-bold text-yellow-600">{diet.summary?.totalCalories} kcal</p>
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <h3 className="text-lg font-semibold mb-2">Macronutrientes</h3>
+                          <div className="mt-2 space-y-2">
+                            <div className="flex items-center">
+                              <div className="w-4 h-4 bg-red-500 rounded-full mr-2"></div>
+                              <span className="text-gray-600">Proteínas: {diet.summary?.totalProteins}g</span>
+                            </div>
+                            <div className="flex items-center">
+                              <div className="w-4 h-4 bg-orange-500 rounded-full mr-2"></div>
+                              <span className="text-gray-600">Carbohidratos: {diet.summary?.totalCarbs}g</span>
+                            </div>
+                            <div className="flex items-center">
+                              <div className="w-4 h-4 bg-yellow-500 rounded-full mr-2"></div>
+                              {apiError}
+                            </div>
+                          )}
+                          
+                          <div className="space-y-4">
+                            <FormInput
+                              label="Calorías diarias"
+                              name="calories"
+                              type="number"
+                              min="1000"
+                              max="5000"
+                              step="100"
+                              value={formData.calories}
+                              onChange={handleChange}
+                              error={errors.calories}
+                              required
+                            />
+                            <FormInput
+                              label="Comidas por día"
+                              name="mealsPerDay"
+                              type="number"
+                              min="1"
+                              max="6"
+                              value={formData.mealsPerDay}
+                              onChange={handleChange}
+                              error={errors.mealsPerDay}
+                              required
+                            />
+                            <FormInput
+                              label="Tiempo máximo por comida (minutos)"
+                              name="timePerMeal"
+                              type="number"
+                              min="5"
+                              max="120"
+                              value={formData.timePerMeal}
+                              onChange={handleChange}
+                              error={errors.timePerMeal}
+                              required
+                            />
+                            <FormInput
+                              label="Objetivo"
+                              name="goal"
+                              type="select"
+                              options={goalOptions}
+                              value={formData.goal}
+                              onChange={handleChange}
+                              error={errors.goal}
+                              required
+                            />
+
+
+                            <FormInput
+                              label="Preferencias alimentarias"
+                              name="preferences"
+                              type="select"
+                              options={preferenceOptions}
+                              value={formData.preferences}
+                              onChange={handleChange}
+                              error={errors.preferences}
+                              required
+                            />
+                            <FormInput
+                              label="Alergias"
+                              name="allergies"
+                              type="text"
+                              placeholder="Separadas por comas"
+                              value={formData.allergies}
+                              onChange={handleChange}
+                              error={errors.allergies}
+                            />
+                            <FormInput
+                              label="Alimentos prohibidos"
+                              name="forbiddenFoods"
+                              type="text"
+                              placeholder="Separados por comas"
+                              value={formData.forbiddenFoods}
+                              onChange={handleChange}
+                              error={errors.forbiddenFoods}
+                            />
+                            <FormInput
+                              label="Alimentos favoritos"
+                              name="favoriteFoods"
+                              type="text"
+                              placeholder="Ejemplo: pizza, hamburguesa, pasta, etc."
+                              value={formData.favoriteFoods}
+                              onChange={handleChange}
+                              error={errors.favoriteFoods}
+                            />
+                          </div>
+                          
+                          <div className="pt-4">
+                            <button
+                              type="submit"
+                              disabled={isLoading || !isValid}
+                              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {isLoading ? 'Generando...' : 'Generar Dieta'}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-10 bg-white shadow overflow-hidden rounded-lg">
+                      <div className="bg-white p-4 rounded-lg shadow-lg">
+                        <div className="w-full">
+                          <h2 className="text-2xl font-bold mb-6">Resumen de tu dieta</h2>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                              <h3 className="text-lg font-semibold mb-2">Objetivo</h3>
+                              <p className="text-gray-600">{diet.summary?.goal}</p>
+                            </div>
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                              <h3 className="text-lg font-semibold mb-2">Calorías totales</h3>
+                              <p className="text-2xl font-bold text-yellow-600">{diet.summary?.totalCalories} kcal</p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                              <h3 className="text-lg font-semibold mb-2">Comidas por día</h3>
+                              <p className="text-gray-600">{diet.summary?.mealsPerDay} comidas</p>
+                            </div>
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                              <h3 className="text-lg font-semibold mb-2">Tiempo máximo por comida</h3>
+                              <p className="text-gray-600">{diet.summary?.maxTimePerMeal} minutos</p>
+                            </div>
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                              <h3 className="text-lg font-semibold mb-2">Preferencias alimentarias</h3>
+                              <p className="text-gray-600">{diet.summary?.preferences}</p>
+                            </div>
+                          </div>
+                          <div className="mt-8">
+                            <h2 className="text-2xl font-bold mb-6">Comidas</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                              {diet.meals.map((meal, index) => (
+                                <MealCard key={index} meal={meal} />
+                              ))}
+                            </div>
+                          </div>
+                          <div className="mt-8">
+                            <button
+                              onClick={() => {
+                                setShowForm(true);
+                                setDiet(null);
+                                setErrors({});
+                                setFormData({
+                                  calories: '',
+                                  mealsPerDay: '3',
+                                  allergies: '',
+                                  preferences: '',
+                                  forbiddenFoods: '',
+                                  timePerMeal: '30',
+                                  goal: '',
+                                  favoriteFoods: ''
+                                });
+                              }}
+                              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                              Generar nueva dieta
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;

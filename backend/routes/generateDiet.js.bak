@@ -1,0 +1,185 @@
+import express from "express";
+import fetch from "node-fetch";
+import { body, validationResult } from "express-validator";
+
+const router = express.Router();
+
+// Configuración de la API de OpenRouter
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+
+// Validación de entrada
+const validateInput = [
+  body('calories').isNumeric().withMessage('Calorías debe ser un número'),
+  body('mealsPerDay').isInt({ min: 1, max: 6 }).withMessage('Comidas por día debe ser entre 1 y 6'),
+  body('allergies').isString().trim().escape(),
+  body('preferences').isString().trim().escape(),
+  body('forbiddenFoods').isString().trim().escape(),
+  body('supermarket').isString().trim().escape(),
+  body('cookingLevel').isString().trim().escape(),
+  body('timePerMeal').isInt({ min: 5 }).withMessage('Tiempo por comida debe ser al menos 5 minutos'),
+  body('goal').isString().trim().escape()
+];
+
+router.post("/generate-diet", validateInput, async (req, res) => {
+  let timeoutId;
+  
+  try {
+    // Validar los datos de entrada
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false,
+        errors: errors.array() 
+      });
+    }
+
+    if (!OPENROUTER_API_KEY) {
+      console.error('Error: OPENROUTER_API_KEY no está configurada');
+      return res.status(500).json({
+        success: false,
+        error: 'Error de configuración del servidor. Por favor, contacta al administrador.'
+      });
+    }
+
+    const {
+      calories = 2000,
+      mealsPerDay = 3,
+      allergies = '',
+      preferences = '',
+      forbiddenFoods = '',
+      supermarket = 'cualquiera',
+      cookingLevel = 'intermedio',
+      timePerMeal = 30,
+      goal = 'mantenimiento',
+      additionalNotes = ''
+    } = req.body;
+
+    console.log('Solicitud recibida con los siguientes datos:', {
+      calories,
+      mealsPerDay,
+      allergies,
+      preferences,
+      forbiddenFoods,
+      supermarket,
+      cookingLevel,
+      timePerMeal,
+      goal,
+      additionalNotes
+    });
+
+    const prompt = `Eres un nutricionista profesional. Tu tarea es crear un plan de comidas personalizado, saludable y equilibrado. Sigue estas instrucciones al pie de la letra:
+
+1. Analiza los siguientes datos del usuario:
+
+Información del usuario:
+- Objetivo: ${goal}
+- Calorías diarias: ${calories} kcal
+- Número de comidas: ${mealsPerDay}
+- Alergias: ${allergies || 'Ninguna'}
+- Preferencias alimentarias: ${preferences || 'Ninguna'}
+- Alimentos prohibidos: ${forbiddenFoods || 'Ninguno'}
+- Supermercado de preferencia: ${supermarket}
+- Nivel de cocina: ${cookingLevel}
+- Tiempo disponible por comida: ${timePerMeal} minutos
+- Notas adicionales: ${additionalNotes || 'Ninguna'}
+
+2. Basándote en esta información, genera un plan de comidas que:
+- Cumpla con el objetivo del usuario (${goal})
+- Se ajuste al presupuesto de ${calories} calorías diarias
+- Incluya ${mealsPerDay} comidas al día
+- Tenga en cuenta las alergias: ${allergies || 'Ninguna'}
+- Respete las preferencias: ${preferences || 'Ninguna'}
+- Excluya: ${forbiddenFoods || 'Ninguno'}
+- Sea adecuado para un nivel de cocina: ${cookingLevel}
+- Cada comida debe poder prepararse en aproximadamente ${timePerMeal} minutos
+- Los ingredientes deben estar disponibles en: ${supermarket}
+
+3. Formato de respuesta:
+- Usa formato Markdown para la respuesta
+- Incluye una lista de compras organizada por categorías
+- Especifica las cantidades de cada ingrediente
+- Incluye instrucciones de preparación claras
+- Asegúrate de que el plan sea variado y equilibrado`;
+
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), 30000); // Timeout de 30 segundos
+
+    const response = await fetch(OPENROUTER_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'http://localhost:4000',
+        'X-Title': 'Diet Generator App'
+      },
+      body: JSON.stringify({
+        model: 'openai/gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres un asistente de nutrición que ayuda a crear planes de comidas personalizados.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000
+      }),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Error en la respuesta de la API:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData
+      });
+
+      let errorMessage = `Error al generar la dieta: ${response.status} ${response.statusText}`;
+      
+      if (errorData.error?.message) {
+        errorMessage += ` - ${errorData.error.message}`;
+      } else if (errorData.error) {
+        errorMessage += ` - ${JSON.stringify(errorData.error)}`;
+      }
+      
+      throw new Error(errorMessage);
+    }
+
+    // Procesar la respuesta exitosa
+    const data = await response.json();
+    console.log('Datos de la respuesta:', JSON.stringify(data, null, 2));
+    
+    if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+      throw new Error('La respuesta no contiene opciones válidas');
+    }
+    
+    const messageContent = data.choices[0]?.message?.content;
+    if (!messageContent) {
+      throw new Error('No se encontró contenido en la respuesta de la API');
+    }
+    
+    return res.json({ 
+      success: true, 
+      message: messageContent 
+    });
+    
+  } catch (error) {
+    console.error('Error en /generate-diet:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Error al generar la dieta',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+});
+
+export default router;
