@@ -42,7 +42,6 @@ function App() {
     allergies: '',
     preferences: '',
     forbiddenFoods: '',
-    timePerMeal: '30',
     goal: '',
     favoriteFoods: '',
     proteinPercentage: 30,
@@ -66,10 +65,6 @@ function App() {
     
     if (!formData.mealsPerDay || isNaN(formData.mealsPerDay) || formData.mealsPerDay < 1 || formData.mealsPerDay > 6) {
       newErrors.mealsPerDay = 'Por favor, introduce un número entre 1 y 6';
-    }
-    
-    if (!formData.timePerMeal || isNaN(formData.timePerMeal) || formData.timePerMeal < 5 || formData.timePerMeal > 120) {
-      newErrors.timePerMeal = 'Por favor, introduce un número entre 5 y 120 minutos';
     }
     
     if (!formData.goal) {
@@ -150,7 +145,7 @@ function App() {
         ...formData,
         calories: totalCalories,
         mealsPerDay: parseInt(formData.mealsPerDay, 10) || 3,
-        timePerMeal: parseInt(formData.timePerMeal, 10) || 30,
+        
         macros: {
           protein: proteinGrams,
           carbs: carbsGrams,
@@ -163,22 +158,51 @@ function App() {
       
       console.log('Enviando solicitud a /api/ con datos:', JSON.stringify(requestBody, null, 2));
       
-      const res = await fetch("/api/", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        credentials: 'include',
-        body: JSON.stringify(requestBody)
-      });
+      let res;
+      let data;
       
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Error al generar la dieta. Inténtalo de nuevo más tarde.');
+      try {
+        console.log('Enviando solicitud a la API...');
+        res = await fetch("/api/", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          credentials: 'include',
+          body: JSON.stringify(requestBody)
+        });
+        
+        console.log('Respuesta HTTP recibida. Status:', res.status);
+        
+        // Intentar leer el cuerpo de la respuesta como JSON
+        const responseText = await res.text();
+        console.log('Contenido de la respuesta (texto):', responseText);
+        
+        try {
+          data = responseText ? JSON.parse(responseText) : {};
+          console.log('Respuesta del servidor (parseada):', JSON.stringify(data, null, 2));
+        } catch (parseError) {
+          console.error('Error al analizar la respuesta JSON:', parseError);
+          throw new Error('La respuesta del servidor no es un JSON válido.');
+        }
+        
+        if (!res.ok) {
+          throw new Error(data.error || `Error del servidor: ${res.status} ${res.statusText}`);
+        }
+        
+        if (!data) {
+          throw new Error('El servidor no devolvió ningún dato.');
+        }
+      } catch (error) {
+        console.error('Error en la petición:', {
+          message: error.message,
+          status: res?.status,
+          response: data || 'No hay datos de respuesta',
+          stack: error.stack
+        });
+        throw error; // Relanzar el error para que lo capture el catch externo
       }
-
-      const data = await res.json();
       
       if (data.success && data.plan && data.plan.meals) {
         const updatedMeals = data.plan.meals.map(meal => {
@@ -208,8 +232,12 @@ function App() {
       setDiet(data.success ? data.plan : null);
       setShowForm(false);
     } catch (err) {
-      setApiError(err.message);
-      console.error('Error:', err);
+      console.error('Error en handleSubmit:', {
+        message: err.message,
+        stack: err.stack,
+        response: err.response ? await err.response.text().catch(() => 'No se pudo leer la respuesta') : 'No hay respuesta'
+      });
+      setApiError(err.message || 'Error al procesar la respuesta del servidor');
     } finally {
       setIsLoading(false);
     }

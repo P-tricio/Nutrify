@@ -73,18 +73,6 @@ const DietForm = ({
               required
             />
             
-            <FormInput
-              label="Tiempo máximo por comida (minutos)"
-              name="timePerMeal"
-              type="number"
-              min="5"
-              max="120"
-              value={formData.timePerMeal || ''}
-              onChange={(e) => handleChange(e)}
-              error={errors.timePerMeal}
-              required
-            />
-            
             <div className="space-y-2">
               <FormInput
                 label="Objetivo"

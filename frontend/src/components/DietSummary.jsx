@@ -16,14 +16,10 @@ const DietSummary = ({ formData, goalOptions, preferenceOptions }) => {
           <p className="text-xl font-bold text-primary-600">{formData.calories} kcal</p>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="bg-neutral-50 p-3 rounded-lg border border-neutral-100">
           <h3 className="text-xs font-semibold text-neutral-500 mb-1">Comidas/día</h3>
           <p className="text-sm text-neutral-800">{formData.mealsPerDay}</p>
-        </div>
-        <div className="bg-neutral-50 p-3 rounded-lg border border-neutral-100">
-          <h3 className="text-xs font-semibold text-neutral-500 mb-1">Tiempo/comida</h3>
-          <p className="text-sm text-neutral-800">{formData.timePerMeal} min</p>
         </div>
         <div className="bg-neutral-50 p-3 rounded-lg border border-neutral-100">
           <h3 className="text-xs font-semibold text-neutral-500 mb-1">Preferencias</h3>

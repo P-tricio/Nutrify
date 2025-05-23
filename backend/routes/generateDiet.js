@@ -6,13 +6,19 @@ import fetch from 'node-fetch';
 const router = express.Router();
 dotenv.config();
 
+// Depuración de variables de entorno
+console.log('Variables de entorno en generateDiet.js:', {
+  OPENROUTER_MODEL: process.env.OPENROUTER_MODEL,
+  NODE_ENV: process.env.NODE_ENV
+});
+
 // Configuración de la API
 const API_CONFIG = {
   OPENROUTER: {
     URL: process.env.OPENROUTER_URL || 'https://openrouter.ai/api/v1/chat/completions',
     MODEL: process.env.OPENROUTER_MODEL || 'qwen/qwen3-14b:free',
     REFERER: process.env.APP_URL || 'http://localhost:5173',
-    TITLE: process.env.APP_TITLE || 'Diet Generator'
+    TITLE: process.env.APP_TITLE || 'Nutrify'
   },
   NUTRITION: {
     PROTEIN_CALORIES_PER_GRAM: 4,
@@ -36,7 +42,6 @@ const validateInput = [
   body('forbiddenFoods').optional().isString().trim(),
   body('supermarket').optional().isString().trim(),
   body('cookingLevel').optional().isString().trim(),
-  body('timePerMeal').optional().isInt({ min: 5 }).withMessage('Tiempo por comida debe ser al menos 5 minutos'),
   body('goal').optional().isString().trim()
 ];
 
@@ -66,7 +71,7 @@ router.post("/", validateInput, async (req, res) => {
     const {
       calories,
       mealsPerDay,
-      timePerMeal,
+
       goal,
       allergies = '',
       preferences = '',
@@ -107,64 +112,71 @@ router.post("/", validateInput, async (req, res) => {
     console.log('======================================');
 
     // Crear el prompt para OpenRouter
-    const prompt = `Eres un experto en nutrición y dietética con amplio conocimiento de la gastronomía española. Genera un plan de comidas personalizado siguiendo ESTAS INSTRUCCIONES DE FORMA ESTRICTA:
+    const prompt = `Eres un experto nutricionista español que habla castellano, especializado en la dieta mediterránea española. Sigue ESTAS INSTRUCCIONES AL PIE DE LA LETRA para generar un plan de comidas personalizado:
 
-1. DATOS DEL USUARIO:
+# INSTRUCCIONES PRINCIPALES (OBLIGATORIAS):
+1. SISTEMA MÉTRICO: Usa EXCLUSIVAMENTE gramos (g) y mililitros (ml).
+2. INGREDIENTES: 
+   - SOLO ingredientes comunes en España (ESPAÑA, no Latinoamérica)
+   - PROHIBIDO USAR TÉRMINOS LATINOAMERICANOS. Ejemplos CORRECTOS:
+     * cacahuete (nunca maní)
+     * aguacate (nunca palta)
+     * judías (nunca frijoles o porotos)
+     * calabacín (nunca zapallito o zucchini)
+     * pimiento (nunca pimentón o morrón)
+   - LISTA NEGRA ABSOLUTA (NUNCA USAR):
+     * ${allergies || 'Ninguna'}
+     * ${forbiddenFoods || 'Ninguno'}
+   - OBLIGATORIO INCLUIR: ${favoriteFoods || 'Ninguno'}
+3. CÁLCULOS EXACTOS:
+   - Total calorías diarias: ${calories} kcal (±5%)
+   - Macronutrientes DIARIOS:
+     * Proteínas: ${macroDistribution.proteinGrams}g (${macroDistribution.protein}%)
+     * Carbohidratos: ${macroDistribution.carbsGrams}g (${macroDistribution.carbs}%)
+     * Grasas: ${macroDistribution.fatsGrams}g (${macroDistribution.fats}%)
+   - Fórmula: (proteínas*4 + carbos*4 + grasas*9) debe ser ≈ ${calories} kcal
+
+# DATOS DEL USUARIO:
 - Objetivo: ${goal}
-- Calorías diarias totales: ${calories} kcal
-- Comidas por día: ${mealsPerDay}
-- Tiempo máximo por comida: ${timePerMeal} minutos
-- Distribución de macronutrientes:
-  * Proteínas: ${macroDistribution.protein}% (${macroDistribution.proteinGrams}g)
-  * Carbohidratos: ${macroDistribution.carbs}% (${macroDistribution.carbsGrams}g)
-  * Grasas: ${macroDistribution.fats}% (${macroDistribution.fatsGrams}g)
+- Comidas/día: ${mealsPerDay}
 - Preferencias: ${preferences || 'Ninguna'}
 - Alergias: ${allergies || 'Ninguna'}
-- Alimentos prohibidos: ${forbiddenFoods || 'Ninguno'}
-- Alimentos favoritos: ${favoriteFoods || 'Ninguno'}
+- Prohibidos: ${forbiddenFoods || 'Ninguno'}
+- Favoritos: ${favoriteFoods || 'Ninguno'}
 
-2. INSTRUCCIONES OBLIGATORIAS:
-- Utiliza EXCLUSIVAMENTE el sistema métrico decimal (gramos, mililitros, etc.)
-- Emplea SOLO ingredientes comunes en España, evita utilizar términos latinos como maní, etc.
-- Las cantidades deben ser realistas y coherentes con las calorías especificadas
-- Incluye cantidades exactas en gramos para cada ingrediente 
-- Asegúrate de que la suma de calorías de todas las comidas se acerque lo máximo posible a ${calories} kcal
-- La distribución de macronutrientes debe ser lo más cercana posible a la especificada (${macroDistribution.protein}% proteína, ${macroDistribution.carbs}% carbohidratos, ${macroDistribution.fats}% grasas)
-- Los gramos de cada macronutriente deben ser aproximadamente: ${macroDistribution.proteinGrams}g proteína, ${macroDistribution.carbsGrams}g carbohidratos, ${macroDistribution.fatsGrams}g grasas
-
-
-3. FORMATO DE RESPUESTA (JSON VÁLIDO):
+# FORMATO DE RESPUESTA (JSON VÁLIDO):
 {
   "summary": {
     "goal": "${goal}",
     "targetCalories": ${calories},
     "mealsPerDay": ${mealsPerDay},
-    "timePerMeal": ${timePerMeal},
     "totalCalories": number,  // Debe ser cercano a ${calories}
-    "totalProteins": number,  // Calculado como 4 kcal/g
-    "totalCarbs": number,     // Calculado como 4 kcal/g
-    "totalFats": number       // Calculado como 9 kcal/g
+    "totalProteins": number,  // ≈ ${macroDistribution.proteinGrams}g
+    "totalCarbs": number,     // ≈ ${macroDistribution.carbsGrams}g
+    "totalFats": number       // ≈ ${macroDistribution.fatsGrams}g
   },
   "meals": [
     {
-      "name": "string",
-      "calories": number,
-      "time": number,
-      "ingredients": "string (cantidades exactas en gramos)",
-      "preparation": "string (instrucciones detalladas)",
-      "proteins": number,
-      "carbs": number,
-      "fats": number
+      "name": "Nombre de la comida (ej: Desayuno)",
+      "calories": number,     // Suma de (proteínas*4 + carbos*4 + grasas*9)
+      "ingredients": "- Ingrediente 1: XXXg\n- Ingrediente 2: YYYml",
+      "preparation": "Instrucciones detalladas paso a paso",
+      "proteins": number,     // En gramos
+      "carbs": number,        // En gramos
+      "fats": number          // En gramos
     }
   ]
 }
 
-IMPORTANTE: 
-- Verifica que la suma de proteínas*4 + carbohidratos*4 + grasas*9 sea igual a las calorías totales (con un margen de ±5%)
-- Los valores nutricionales deben ser coherentes con los ingredientes y cantidades especificados
+# VERIFICACIONES FINALES (OBLIGATORIAS):
+1. ¿Se incluyeron los alimentos favoritos? [${favoriteFoods || 'N/A'}]
+2. ¿Se excluyeron alérgenos? [${allergies || 'N/A'}]
+3. ¿Se excluyeron alimentos prohibidos? [${forbiddenFoods || 'N/A'}]
+4. ¿Los cálculos de macronutrientes son correctos? (proteínas*4 + carbos*4 + grasas*9 ≈ ${calories} kcal)
+5. ¿Las cantidades son realistas para una comida normal?
+6. ¿Los ingredientes son comunes en España?
 
-
-SOLO DEVUELVE EL JSON VÁLIDO, SIN TEXTO ADICIONAL.`;
+IMPORTANTE: Responde ÚNICAMENTE con el JSON válido, sin comentarios ni texto adicional.`;
 
     // Log del prompt que se enviará a la IA
     console.log('\n=== PROMPT ENVIADO A LA IA ===');
@@ -172,6 +184,7 @@ SOLO DEVUELVE EL JSON VÁLIDO, SIN TEXTO ADICIONAL.`;
     console.log('===============================\n');
 
     try {
+      console.log('Enviando solicitud a OpenAI con modelo:', API_CONFIG.OPENROUTER.MODEL);
       const response = await fetch(API_CONFIG.OPENROUTER.URL, {
         method: 'POST',
         headers: {
@@ -185,7 +198,7 @@ SOLO DEVUELVE EL JSON VÁLIDO, SIN TEXTO ADICIONAL.`;
           messages: [
             {
               role: 'system',
-              content: 'Eres un experto en nutrición y dietética. Utiliza un formato de desayuno, almuerzo y cena, si el número de comidas es mayor de 3 utiliza más comidas (merienda, snack, etc.). Genera planes de comidas personalizados basados en los parámetros proporcionados sin dar más explicaciones.'
+              content: 'Eres un experto en nutrición y dietética que habla castellano. Utiliza un formato de desayuno, almuerzo y cena, si el número de comidas es mayor de 3 utiliza más comidas (merienda, snack, etc.). Genera planes de comidas personalizados basados en los parámetros proporcionados presta especial atención a las instrucciones obligatorias del prompt'
             },
             {
               role: 'user',
@@ -200,16 +213,47 @@ SOLO DEVUELVE EL JSON VÁLIDO, SIN TEXTO ADICIONAL.`;
       }
 
       const data = await response.json();
+      
+      console.log('=== RESPUESTA CRUDA DE LA API ===');
+      console.log(JSON.stringify(data, null, 2));
+      
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error('Estructura de respuesta inesperada:', data);
+        throw new Error('La respuesta de la API no tiene el formato esperado');
+      }
+      
       const content = data.choices[0].message.content.trim();
       
-      // Log de la respuesta de la IA
       console.log('\n=== RESPUESTA DE LA IA ===');
       console.log(content);
       console.log('===========================\n');
       
+      // Intentar extraer el JSON de la respuesta
+      let jsonResponse;
+      try {
+        // Buscar el primer { y el último } para extraer el JSON
+        const jsonStart = content.indexOf('{');
+        const jsonEnd = content.lastIndexOf('}') + 1;
+        
+        if (jsonStart === -1 || jsonEnd === 0) {
+          throw new Error('No se encontró un objeto JSON en la respuesta');
+        }
+        
+        const jsonString = content.substring(jsonStart, jsonEnd);
+        console.log('JSON extraído para análisis:', jsonString);
+        
+        jsonResponse = JSON.parse(jsonString);
+        console.log('JSON analizado correctamente:', JSON.stringify(jsonResponse, null, 2));
+        
+      } catch (error) {
+        console.error('Error al analizar la respuesta JSON:', error);
+        console.error('Contenido que falló al analizar:', content);
+        throw new Error('El modelo devolvió un formato no válido. Por favor, inténtalo de nuevo.');
+      }
+
       // Verificar si el contenido es un JSON válido
       try {
-        const plan = JSON.parse(content);
+        const plan = jsonResponse;
         res.json({
           success: true,
           plan
