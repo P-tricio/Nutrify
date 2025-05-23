@@ -112,7 +112,7 @@ router.post("/", validateInput, async (req, res) => {
     console.log('======================================');
 
     // Crear el prompt para OpenRouter
-    const prompt = `Eres un experto nutricionista español que habla castellano, especializado en la dieta mediterránea española. Sigue ESTAS INSTRUCCIONES AL PIE DE LA LETRA para generar un plan de comidas personalizado:
+    const prompt = `Eres un experto nutricionista que habla castellano, especializado en la dieta mediterránea española. Sigue ESTAS INSTRUCCIONES AL PIE DE LA LETRA para generar un plan de comidas personalizado:
 
 # INSTRUCCIONES PRINCIPALES (OBLIGATORIAS):
 1. SISTEMA MÉTRICO: Usa EXCLUSIVAMENTE gramos (g) y mililitros (ml).
@@ -159,7 +159,7 @@ router.post("/", validateInput, async (req, res) => {
     {
       "name": "Nombre de la comida (ej: Desayuno)",
       "calories": number,     // Suma de (proteínas*4 + carbos*4 + grasas*9)
-      "ingredients": "- Ingrediente 1: XXXg\n- Ingrediente 2: YYYml",
+      "ingredients": "Ingrediente 1: XXXg\nIngrediente 2: YYYml",
       "preparation": "Instrucciones detalladas paso a paso",
       "proteins": number,     // En gramos
       "carbs": number,        // En gramos
@@ -184,7 +184,26 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON válido, sin comentarios ni texto a
     console.log('===============================\n');
 
     try {
-      console.log('Enviando solicitud a OpenAI con modelo:', API_CONFIG.OPENROUTER.MODEL);
+      console.log('Enviando solicitud a OpenRouter con modelo:', API_CONFIG.OPENROUTER.MODEL);
+      
+      const requestBody = {
+        model: API_CONFIG.OPENROUTER.MODEL,
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres un experto en nutrición y dietética que habla castellano. Utiliza un formato de desayuno, almuerzo y cena, si el número de comidas es mayor de 3 utiliza más comidas (snack 1, snack 2, etc.). Genera planes de comidas personalizados basados en los parámetros proporcionados presta especial atención a las instrucciones obligatorias del prompt, utiliza ingredientes concretos en lugar de genéricos. Responde ÚNICAMENTE con un JSON válido.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      };
+
+      console.log('=== CUERPO DE LA SOLICITUD ===');
+      console.log(JSON.stringify(requestBody, null, 2));
+      console.log('==============================');
+
       const response = await fetch(API_CONFIG.OPENROUTER.URL, {
         method: 'POST',
         headers: {
@@ -193,29 +212,30 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON válido, sin comentarios ni texto a
           'HTTP-Referer': API_CONFIG.OPENROUTER.REFERER,
           'X-Title': API_CONFIG.OPENROUTER.TITLE
         },
-        body: JSON.stringify({
-          model: API_CONFIG.OPENROUTER.MODEL,
-          messages: [
-            {
-              role: 'system',
-              content: 'Eres un experto en nutrición y dietética que habla castellano. Utiliza un formato de desayuno, almuerzo y cena, si el número de comidas es mayor de 3 utiliza más comidas (merienda, snack, etc.). Genera planes de comidas personalizados basados en los parámetros proporcionados presta especial atención a las instrucciones obligatorias del prompt'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ]
-        })
+        body: JSON.stringify(requestBody)
       });
 
-      if (!response.ok) {
-        throw new Error('Error al generar el plan de comidas');
-      }
-
-      const data = await response.json();
+      console.log('=== RESPUESTA HTTP ===');
+      console.log('Status:', response.status, response.statusText);
       
-      console.log('=== RESPUESTA CRUDA DE LA API ===');
+      const responseText = await response.text();
+      console.log('Respuesta en bruto:', responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Error al parsear la respuesta JSON:', e);
+        throw new Error(`La respuesta de la API no es un JSON válido: ${responseText.substring(0, 200)}...`);
+      }
+      
+      console.log('=== RESPUESTA DE LA API ===');
       console.log(JSON.stringify(data, null, 2));
+      
+      if (!response.ok) {
+        console.error('Error en la respuesta de la API:', data);
+        throw new Error(`Error de la API: ${data.error?.message || response.statusText}`);
+      }
       
       if (!data.choices || !data.choices[0] || !data.choices[0].message) {
         console.error('Estructura de respuesta inesperada:', data);
@@ -224,11 +244,11 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON válido, sin comentarios ni texto a
       
       const content = data.choices[0].message.content.trim();
       
-      console.log('\n=== RESPUESTA DE LA IA ===');
+      console.log('\n=== CONTENIDO DE LA RESPUESTA ===');
       console.log(content);
-      console.log('===========================\n');
+      console.log('=================================\n');
       
-      // Intentar extraer el JSON de la respuesta
+      // Extraer el JSON de la respuesta
       let jsonResponse;
       try {
         // Buscar el primer { y el último } para extraer el JSON
@@ -242,7 +262,17 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON válido, sin comentarios ni texto a
         const jsonString = content.substring(jsonStart, jsonEnd);
         console.log('JSON extraído para análisis:', jsonString);
         
-        jsonResponse = JSON.parse(jsonString);
+        // Limpiar el JSON de posibles caracteres inválidos
+        const cleanJsonString = jsonString
+          .replace(/\n/g, '')  // Eliminar saltos de línea
+          .replace(/\r/g, '')   // Eliminar retornos de carro
+          .replace(/\t/g, '')   // Eliminar tabulaciones
+          .replace(/\f/g, '')   // Eliminar saltos de página
+          .replace(/\b(?:true|false|null)\b/gi, match => match.toLowerCase());  // Asegurar booleanos y null en minúsculas
+        
+        console.log('JSON limpio:', cleanJsonString);
+        
+        jsonResponse = JSON.parse(cleanJsonString);
         console.log('JSON analizado correctamente:', JSON.stringify(jsonResponse, null, 2));
         
       } catch (error) {

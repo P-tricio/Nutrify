@@ -8,7 +8,7 @@ const MacroGoals = ({ proteinPercentage, carbsPercentage, fatPercentage, calorie
 
   return (
     <div className={`bg-white p-4 rounded-lg shadow-md border-2 border-gray-200 ${className}`}>
-      <h3 className="text-lg font-semibold mb-4 text-center">Objetivo de macronutrientes</h3>
+      <h3 className="text-lg font-semibold mb-4 text-center">Distribución de macronutrientes</h3>
       
       {/* Barra de progreso unificada */}
       <div className="w-full bg-gray-100 rounded-full h-4 mb-6 overflow-hidden flex">
@@ -30,7 +30,7 @@ const MacroGoals = ({ proteinPercentage, carbsPercentage, fatPercentage, calorie
       </div>
 
       {/* Leyenda y valores */}
-      <div className="space-y-3">
+      <div className="space-y-3 max-w-xs mx-auto">
         {/* Proteínas */}
         <div className="flex items-center justify-between">
           <div className="flex items-center">

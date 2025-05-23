@@ -79,8 +79,38 @@ const MealCard = ({ meal }) => {
       </div>
       <div className="space-y-4">
         <div className="w-full">
-          <h4 className="text-lg font-medium text-gray-800">Ingredientes principales</h4>
-          <p className="mt-1 text-gray-600 whitespace-pre-wrap">{meal.ingredients}</p>
+        <h4 className="text-lg font-medium text-gray-800 mb-2">Ingredientes</h4>
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-200">
+                {meal.ingredients.split('\n').map((ingredient, index) => {
+                  // Buscamos el último espacio antes de la cantidad (asumiendo formato 'ingrediente: cantidad')
+                  const parts = ingredient.split(':');
+                  if (parts.length >= 2) {
+                    const name = parts[0].trim();
+                    const quantity = parts.slice(1).join(':').trim();
+                    return (
+                      <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {name}
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500 text-right">
+                          {quantity}
+                        </td>
+                      </tr>
+                    );
+                  }
+                  return (
+                    <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td colSpan="2" className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                        {ingredient}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
         {meal.preparation && (
           <div className="w-full mt-4">

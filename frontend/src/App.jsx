@@ -7,14 +7,12 @@ import DietResults from './components/DietResults';
 export const goalOptions = [
   { value: 'perdida', label: 'Pérdida de peso' },
   { value: 'mantenimiento', label: 'Mantenimiento' },
-  { value: 'aumento', label: 'Aumento de masa muscular' },
-  { value: 'definicion', label: 'Definición muscular' },
+  { value: 'aumento', label: 'Aumento de masa muscular' }
 ];
 
 // Mapeo entre opciones de objetivo y distribución de macros
 export const goalToMacroDistribution = {
   'perdida': 'perdida',
-  'definicion': 'definicion',
   'mantenimiento': 'mantenimiento',
   'aumento': 'aumento'
 };
@@ -30,7 +28,6 @@ export const preferenceOptions = [
 // Distribuciones de macronutrientes según el objetivo
 export const goalMacroDistributions = {
   'perdida': { protein: 40, carbs: 35, fats: 25 },
-  'definicion': { protein: 45, carbs: 35, fats: 20 },
   'mantenimiento': { protein: 30, carbs: 40, fats: 30 },
   'aumento': { protein: 25, carbs: 50, fats: 25 }
 };
@@ -261,11 +258,11 @@ function App() {
   };
 
   return (
-    <div className={`min-h-screen bg-neutral-50 flex items-center justify-center p-3 sm:p-4 ${!showForm ? 'py-8' : ''}`}>
-      <div className={`w-full ${showForm ? 'max-w-md' : 'max-w-2xl'}`}>
+    <div className="min-h-screen bg-neutral-50 p-3 sm:p-4">
+      <div className="w-full max-w-7xl mx-auto">
         <div className="relative">
-          <div className={`absolute inset-0 bg-gradient-to-r from-primary-400 to-primary-600 shadow-lg transform ${showForm ? '-skew-y-2 sm:skew-y-0 sm:-rotate-2 sm:rounded-xl' : '-skew-y-3 sm:skew-y-0 sm:-rotate-3 sm:rounded-2xl'}`}></div>
-          <div className={`relative bg-white ${showForm ? 'shadow-md rounded-lg' : 'shadow-lg rounded-xl'} p-4 ${!showForm ? 'sm:p-5' : ''}`}>
+          <div className={`absolute inset-0 bg-gradient-to-r from-primary-400 to-primary-600 shadow-lg transform ${showForm ? 'sm:rounded-xl' : 'sm:rounded-2xl'}`}></div>
+          <div className={`relative bg-white ${showForm ? 'shadow-md rounded-lg' : 'shadow-lg rounded-xl'} p-4 ${!showForm ? 'sm:p-5' : ''}`} style={{ minHeight: 'calc(100vh - 2rem)' }}>
             {isLoading ? (
               <div className="flex items-center justify-center h-64">
                 <LoadingSpinner />
