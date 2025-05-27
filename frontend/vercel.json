@@ -1,15 +1,6 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": { 
-        "distDir": "dist",
-        "outputDirectory": "dist"
-      }
-    }
-  ],
+ 
   "routes": [
     { "src": "/api/(.*)", "dest": "https://nutrify-s234.onrender.com/api/$1" },
     { "src": "/assets/(.*)", "dest": "/assets/$1" },
