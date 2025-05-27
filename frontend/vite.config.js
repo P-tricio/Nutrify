@@ -9,11 +9,11 @@ import autoprefixer from 'autoprefixer';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ mode }) => ({
+  base: '/',
   plugins: [react()],
   define: {
     'process.env': {}
   },
- 
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
@@ -21,38 +21,45 @@ export default defineConfig(({ mode }) => ({
     minify: mode === 'production' ? 'terser' : false,
     rollupOptions: {
       output: {
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
         manualChunks: {
           react: ['react', 'react-dom'],
           vendor: ['react-router-dom']
         }
       }
+    },
+    commonjsOptions: {
+      transformMixedEsModules: true
     }
   },
   server: {
     port: 5173,
-    open: process.env.NODE_ENV !== 'production' && !process.env.VERCEL,
-    proxy: process.env.VERCEL ? undefined : {
+    strictPort: true,
+    open: true,
+    host: true, // Escuchar en todas las interfaces de red
+    cors: true, // Habilitar CORS para desarrollo
+    hmr: {
+      host: 'localhost',
+      port: 5173,
+      protocol: 'ws'
+    },
+    proxy: {
       '/api': {
         target: process.env.VITE_API_URL || 'http://localhost:4000',
         changeOrigin: true,
         secure: false,
-        ws: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, _res) => {
-            console.error('Error del proxy:', err);
+            console.log('proxy error', err);
           });
           proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Enviando solicitud al backend:', {
-              method: req.method,
-              url: req.url
-            });
+            console.log('Sending Request to the Target:', req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('Respuesta del backend recibida:', {
-              statusCode: proxyRes.statusCode,
-              statusMessage: proxyRes.statusMessage,
-              url: req.url
-            });
+            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
           });
         }
       }
