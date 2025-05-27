@@ -39,12 +39,61 @@ const icons = {
 };
 
 const MealCard = ({ meal }) => {
-  // Usar directamente los valores proporcionados por el backend
+  // Extraer valores de macros, manejando tanto el formato nuevo (rango) como el antiguo (valor fijo)
+  const getMacroValue = (macro) => {
+    if (!meal.macros) return '0-0';
+    if (typeof meal.macros[macro] === 'string') {
+      return meal.macros[macro]; // Ya está en formato de rango
+    }
+    return `${meal.macros[macro]}-${meal.macros[macro]}`; // Convertir valor fijo a rango
+  };
+
   const macros = {
-    proteins: meal.proteins || 0,
-    carbs: meal.carbs || 0,
-    fats: meal.fats || 0,
-    calories: meal.calories || 0
+    proteins: getMacroValue('proteins'),
+    carbs: getMacroValue('carbs'),
+    fats: getMacroValue('fats'),
+    calories: meal.calories?.includes('Aprox.') 
+      ? meal.calories.replace('Aprox.', '').trim() 
+      : meal.calories || '0-0 kcal'
+  };
+
+  // Función para manejar ingredientes tanto en formato array como string
+  const renderIngredients = () => {
+    if (!meal.ingredients) return null;
+    
+    // Si es un array de objetos
+    if (Array.isArray(meal.ingredients)) {
+      return meal.ingredients.map((ingredient, index) => (
+        <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+          <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+            {ingredient.name}
+          </td>
+          <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500 text-right">
+            {ingredient.amount}
+          </td>
+        </tr>
+      ));
+    }
+    
+    // Si es un string con saltos de línea (formato antiguo)
+    return meal.ingredients.split('\n').map((ingredient, index) => {
+      const parts = ingredient.split(':');
+      if (parts.length >= 2) {
+        const name = parts[0].trim();
+        const quantity = parts.slice(1).join(':').trim();
+        return (
+          <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+            <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+              {name}
+            </td>
+            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500 text-right">
+              {quantity}
+            </td>
+          </tr>
+        );
+      }
+      return null;
+    });
   };
 
   return (
@@ -55,73 +104,61 @@ const MealCard = ({ meal }) => {
           {/* Proteínas */}
           <div className="flex items-center space-x-1 bg-red-50 px-2 py-1 rounded-full">
             <span className="text-red-500">{icons.proteins}</span>
-            <span className="text-xs font-medium text-red-700">{macros.proteins}g</span>
+            <span className="text-xs font-medium text-red-700">{macros.proteins}</span>
           </div>
           
           {/* Carbohidratos */}
           <div className="flex items-center space-x-1 bg-orange-50 px-2 py-1 rounded-full">
             <span className="text-orange-500">{icons.carbs}</span>
-            <span className="text-xs font-medium text-orange-700">{macros.carbs}g</span>
+            <span className="text-xs font-medium text-orange-700">{macros.carbs}</span>
           </div>
           
           {/* Grasas */}
           <div className="flex items-center space-x-1 bg-yellow-50 px-2 py-1 rounded-full">
             <span className="text-yellow-500">{icons.fats}</span>
-            <span className="text-xs font-medium text-yellow-700">{macros.fats}g</span>
+            <span className="text-xs font-medium text-yellow-700">{macros.fats}</span>
           </div>
           
           {/* Calorías */}
           <div className="flex items-center space-x-1 bg-green-50 px-2 py-1 rounded-full">
             <span className="text-green-500">{icons.calorias}</span>
-            <span className="text-xs font-medium text-green-700">{macros.calories} kcal</span>
+            <span className="text-xs font-medium text-green-700">
+              {macros.calories.includes('kcal') ? macros.calories : `${macros.calories} kcal`}
+            </span>
           </div>
         </div>
       </div>
       <div className="space-y-4">
         <div className="w-full">
-        <h4 className="text-lg font-medium text-gray-800 mb-2">Ingredientes</h4>
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <tbody className="bg-white divide-y divide-gray-200">
-                {meal.ingredients.split('\n').map((ingredient, index) => {
-                  // Buscamos el último espacio antes de la cantidad (asumiendo formato 'ingrediente: cantidad')
-                  const parts = ingredient.split(':');
-                  if (parts.length >= 2) {
-                    const name = parts[0].trim();
-                    const quantity = parts.slice(1).join(':').trim();
-                    return (
-                      <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {name}
-                        </td>
-                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500 text-right">
-                          {quantity}
-                        </td>
-                      </tr>
-                    );
-                  }
-                  return (
-                    <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <td colSpan="2" className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                        {ingredient}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <h4 className="text-lg font-medium text-gray-800 mb-2">Ingredientes</h4>
+          {meal.ingredients && meal.ingredients.length > 0 ? (
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {renderIngredients()}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-gray-500 text-sm">No se especificaron ingredientes</p>
+          )}
         </div>
+        
         {meal.preparation && (
-          <div className="w-full mt-4">
-            <h4 className="text-lg font-medium text-gray-800">Preparación</h4>
-            <p className="mt-1 text-gray-600 whitespace-pre-wrap">{meal.preparation}</p>
+          <div className="mt-4">
+            <h4 className="text-lg font-medium text-gray-800 mb-2">Preparación</h4>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="whitespace-pre-line text-gray-700">{meal.preparation}</p>
+            </div>
           </div>
         )}
+        
         {meal.notes && (
-          <div className="w-full mt-4">
-            <h4 className="text-lg font-medium text-gray-800">Notas</h4>
-            <p className="mt-1 text-gray-600 whitespace-pre-wrap">{meal.notes}</p>
+          <div className="mt-4">
+            <h4 className="text-lg font-medium text-gray-800 mb-2">Notas</h4>
+            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
+              <p className="whitespace-pre-line text-yellow-700">{meal.notes}</p>
+            </div>
           </div>
         )}
       </div>

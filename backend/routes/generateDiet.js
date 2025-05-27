@@ -112,7 +112,41 @@ router.post("/", validateInput, async (req, res) => {
     console.log('======================================');
 
     // Crear el prompt para OpenRouter
-    const prompt = `Eres un experto nutricionista que habla castellano, especializado en la dieta mediterránea española. Sigue ESTAS INSTRUCCIONES AL PIE DE LA LETRA para generar un plan de comidas personalizado:
+    const prompt = `Eres un experto nutricionista que habla castellano, especializado en la dieta mediterránea española. Sigue ESTAS INSTRUCCIONES AL PIE DE LA LETRA para generar un plan de comidas personalizado ajustando las cantidades de ingredientes a los macros objetivo:
+
+    # CÁLCULO DE MACROS (OBLIGATORIO):
+- Usa valores promedio de la base de datos de alimentos (como USDA o similar) para cada ingrediente.
+- Si un ingrediente está cocido, ajusta la cantidad real en base al cambio de peso por cocción (ej: arroz cocido pesa 3 veces más que crudo).
+1. Para CADA comida, calcular los macros basados en los ingredientes reales:
+   - PROTEÍNAS:
+     * Carnes magras (pollo, pavo): 25-30g por 100g
+     * Pescados (salmón, atún): 20-25g por 100g
+     * Huevos: 6g por huevo
+     * Lácteos: 3-8g por 100g
+     * Legumbres: 5-10g por 100g cocidas
+     * Vegetales: 1-3g por 100g
+   
+   - CARBOHIDRATOS:
+     * Arroz/pasta: 25-30g por 100g cocidos (el doble si es en seco)
+     * Patatas: 20g por 100g cocidas
+     * Pan: 45-50g por 100g
+     * Frutas: 15-20g por 100g
+     * Verduras: 2-5g por 100g
+   
+   - GRASAS:
+     * Aceite de oliva: 14g por cucharada (15ml)
+     * Frutos secos: 15g por puñado (30g)
+     * Aguacate: 15g por 1/2 unidad
+     * Pescados azules: 10-15g por 100g
+     * Huevo: 5g por unidad (clara + yema)
+
+2. EJEMPLO DE CÁLCULO para una comida con 200g de salmón, 200g de patatas, 200g de espinacas, 20ml de aceite y 30g de almendras:
+   - Salmón (200g): 40g proteínas, 10g grasas
+   - Patatas (200g): 40g carbohidratos, 4g proteínas
+   - Espinacas (200g): 4g carbohidratos, 4g proteínas
+   - Aceite (20ml): 18g grasas
+   - Almendras (30g): 6g proteínas, 15g grasas, 6g carbohidratos
+   TOTAL: 54g proteínas, 50g carbohidratos, 43g grasas (~800 kcal)
 
 # INSTRUCCIONES PRINCIPALES (OBLIGATORIAS):
 1. SISTEMA MÉTRICO: Usa EXCLUSIVAMENTE gramos (g) y mililitros (ml).
@@ -150,23 +184,35 @@ router.post("/", validateInput, async (req, res) => {
     "goal": "${goal}",
     "targetCalories": ${calories},
     "mealsPerDay": ${mealsPerDay},
-    "totalCalories": number,  // Debe ser cercano a ${calories}
-    "totalProteins": number,  // ≈ ${macroDistribution.proteinGrams}g
-    "totalCarbs": number,     // ≈ ${macroDistribution.carbsGrams}g
-    "totalFats": number       // ≈ ${macroDistribution.fatsGrams}g
+    "totalCalories": "Aprox. X-XX kcal",  // Rango aproximado de calorías totales
+    "totalProteins": "Aprox. XX-XXg",     // Rango aproximado de proteínas totales
+    "totalCarbs": "Aprox. XX-XXg",        // Rango aproximado de carbohidratos totales
+    "totalFats": "Aprox. XX-XXg"          // Rango aproximado de grasas totales
   },
   "meals": [
     {
       "name": "Nombre de la comida (ej: Desayuno)",
-      "calories": number,     // Suma de (proteínas*4 + carbos*4 + grasas*9)
-      "ingredients": "Ingrediente 1: XXXg\nIngrediente 2: YYYml",
+      "calories": "Aprox. XXX-XXX kcal",  // Rango aproximado
+      "ingredients": [
+        { "name": "Ingrediente 1", "amount": "XXXg" },
+        { "name": "Ingrediente 2", "amount": "XXXml" }
+      ],
       "preparation": "Instrucciones detalladas paso a paso",
-      "proteins": number,     // En gramos
-      "carbs": number,        // En gramos
-      "fats": number          // En gramos
+      "macros": {
+        "proteins": "XX-XXg",  // Rango aproximado
+        "carbs": "XX-XXg",     // Rango aproximado
+        "fats": "XX-XXg"       // Rango aproximado
+      }
     }
   ]
 }
+
+# EJEMPLO REALISTE (para ${mealsPerDay} comidas):
+- Desayuno: 20-30g proteínas, 30-50g carbohidratos, 10-15g grasas
+- Comida: 30-40g proteínas, 40-60g carbohidratos, 15-20g grasas
+- Cena: 25-35g proteínas, 20-40g carbohidratos, 10-15g grasas
+
+IMPORTANTE: Los macros DEBEN ser coherentes con las cantidades de ingredientes especificadas.
 
 # VERIFICACIONES FINALES (OBLIGATORIAS):
 1. ¿Se incluyeron los alimentos favoritos? [${favoriteFoods || 'N/A'}]

@@ -1,29 +1,62 @@
 import express from "express";
-import fetch from "node-fetch";
 import { body, validationResult } from "express-validator";
+import dotenv from 'dotenv';
+import fetch from 'node-fetch';
 
 const router = express.Router();
+dotenv.config();
 
-// Configuración de la API de OpenRouter
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+// Depuración de variables de entorno
+console.log('Variables de entorno en generateDiet.js:', {
+  OPENROUTER_MODEL: process.env.OPENROUTER_MODEL,
+  NODE_ENV: process.env.NODE_ENV
+});
 
-// Validación de entrada
+// Configuración de la API
+const API_CONFIG = {
+  OPENROUTER: {
+    URL: process.env.OPENROUTER_URL || 'https://openrouter.ai/api/v1/chat/completions',
+    MODEL: process.env.OPENROUTER_MODEL || 'qwen/qwen3-14b:free',
+    REFERER: process.env.APP_URL || 'http://localhost:5173',
+    TITLE: process.env.APP_TITLE || 'Nutrify'
+  },
+  NUTRITION: {
+    PROTEIN_CALORIES_PER_GRAM: 4,
+    CARBS_CALORIES_PER_GRAM: 4,
+    FAT_CALORIES_PER_GRAM: 9,
+    DEFAULT_MEALS_PER_DAY: 3,
+    MIN_CALORIES: 1000,
+    MAX_CALORIES: 5000
+  }
+};
+
+// Middleware para parsear JSON
+router.use(express.json());
+
+// Validación de entrada simplificada
 const validateInput = [
-  body('calories').isNumeric().withMessage('Calorías debe ser un número'),
-  body('mealsPerDay').isInt({ min: 1, max: 6 }).withMessage('Comidas por día debe ser entre 1 y 6'),
-  body('allergies').isString().trim().escape(),
-  body('preferences').isString().trim().escape(),
-  body('forbiddenFoods').isString().trim().escape(),
-  body('supermarket').isString().trim().escape(),
-  body('cookingLevel').isString().trim().escape(),
-  body('timePerMeal').isInt({ min: 5 }).withMessage('Tiempo por comida debe ser al menos 5 minutos'),
-  body('goal').isString().trim().escape()
+  body('calories').optional().isNumeric().withMessage('Calorías debe ser un número'),
+  body('mealsPerDay').optional().isInt({ min: 1, max: 6 }).withMessage('Comidas por día debe ser entre 1 y 6'),
+  body('allergies').optional().isString().trim(),
+  body('preferences').optional().isString().trim(),
+  body('forbiddenFoods').optional().isString().trim(),
+  body('supermarket').optional().isString().trim(),
+  body('cookingLevel').optional().isString().trim(),
+  body('goal').optional().isString().trim()
 ];
 
-router.post("/generate-diet", validateInput, async (req, res) => {
-  let timeoutId;
-  
+// Ruta de prueba simple
+router.get("/test", (req, res) => {
+  res.json({ 
+    success: true, 
+    message: "La ruta de prueba está funcionando correctamente"
+  });
+});
+
+// Ruta para generar dieta (simplificada para pruebas)
+router.post("/", validateInput, async (req, res) => {
+  console.log('Ruta /generate-diet accedida con método POST');
+  console.log('Datos recibidos:', req.body);
   try {
     // Validar los datos de entrada
     const errors = validationResult(req);
@@ -34,151 +67,292 @@ router.post("/generate-diet", validateInput, async (req, res) => {
       });
     }
 
-    if (!OPENROUTER_API_KEY) {
-      console.error('Error: OPENROUTER_API_KEY no está configurada');
-      return res.status(500).json({
-        success: false,
-        error: 'Error de configuración del servidor. Por favor, contacta al administrador.'
-      });
-    }
-
+    // Obtener los datos del formulario
     const {
-      calories = 2000,
-      mealsPerDay = 3,
+      calories,
+      mealsPerDay,
+
+      goal,
       allergies = '',
       preferences = '',
       forbiddenFoods = '',
-      supermarket = 'cualquiera',
-      cookingLevel = 'intermedio',
-      timePerMeal = 30,
-      goal = 'mantenimiento',
-      additionalNotes = ''
+      favoriteFoods = '',
+      macros = {}
     } = req.body;
 
-    console.log('Solicitud recibida con los siguientes datos:', {
-      calories,
-      mealsPerDay,
-      allergies,
-      preferences,
-      forbiddenFoods,
-      supermarket,
-      cookingLevel,
-      timePerMeal,
-      goal,
-      additionalNotes
-    });
+    // Obtener la distribución de macronutrientes o usar valores por defecto
+    const macroDistribution = macros?.proteinPercentage && macros?.carbsPercentage && macros?.fatsPercentage
+      ? {
+          protein: macros.proteinPercentage,
+          carbs: macros.carbsPercentage,
+          fats: macros.fatsPercentage,
+          proteinGrams: macros.protein,
+          carbsGrams: macros.carbs,
+          fatsGrams: macros.fats
+        }
+      : {
+          protein: 30,
+          carbs: 40,
+          fats: 30,
+          proteinGrams: Math.round((calories * 0.3) / 4),
+          carbsGrams: Math.round((calories * 0.4) / 4),
+          fatsGrams: Math.round((calories * 0.3) / 9)
+        };
 
-    const prompt = `Eres un nutricionista profesional. Tu tarea es crear un plan de comidas personalizado, saludable y equilibrado. Sigue estas instrucciones al pie de la letra:
+    // Log de depuración
+    console.log('=== DISTRIBUCIÓN DE MACRONUTRIENTES ===');
+    console.log('Proteínas:', macroDistribution.protein, '% -', macroDistribution.proteinGrams, 'g');
+    console.log('Carbohidratos:', macroDistribution.carbs, '% -', macroDistribution.carbsGrams, 'g');
+    console.log('Grasas:', macroDistribution.fats, '% -', macroDistribution.fatsGrams, 'g');
+    console.log('Calorías totales:', calories);
+    console.log('Calorías calculadas:', 
+      (macroDistribution.proteinGrams * 4) + 
+      (macroDistribution.carbsGrams * 4) + 
+      (macroDistribution.fatsGrams * 9));
+    console.log('======================================');
 
-1. Analiza los siguientes datos del usuario:
+    // Crear el prompt para OpenRouter
+    const prompt = `Eres un experto nutricionista que habla castellano, especializado en la dieta mediterránea española. Sigue ESTAS INSTRUCCIONES AL PIE DE LA LETRA para generar un plan de comidas personalizado ajustando las cantidades de ingredientes a los macros objetivo:
 
-Información del usuario:
+    # CÁLCULO DE MACROS (OBLIGATORIO):
+- Usa valores promedio de la base de datos de alimentos (como USDA o similar) para cada ingrediente.
+- Si un ingrediente está cocido, ajusta la cantidad real en base al cambio de peso por cocción (ej: arroz cocido pesa 3 veces más que crudo).
+1. Para CADA comida, calcular los macros basados en los ingredientes reales:
+   - PROTEÍNAS:
+     * Carnes magras (pollo, pavo): 25-30g por 100g
+     * Pescados (salmón, atún): 20-25g por 100g
+     * Huevos: 6g por huevo
+     * Lácteos: 3-8g por 100g
+     * Legumbres: 5-10g por 100g cocidas
+     * Vegetales: 1-3g por 100g
+   
+   - CARBOHIDRATOS:
+     * Arroz/pasta: 25-30g por 100g cocidos (el doble si es en seco)
+     * Patatas: 20g por 100g cocidas
+     * Pan: 45-50g por 100g
+     * Frutas: 15-20g por 100g
+     * Verduras: 2-5g por 100g
+   
+   - GRASAS:
+     * Aceite de oliva: 14g por cucharada (15ml)
+     * Frutos secos: 15g por puñado (30g)
+     * Aguacate: 15g por 1/2 unidad
+     * Pescados azules: 10-15g por 100g
+     * Huevo: 5g por unidad (clara + yema)
+
+2. EJEMPLO DE CÁLCULO para una comida con 200g de salmón, 200g de patatas, 200g de espinacas, 20ml de aceite y 30g de almendras:
+   - Salmón (200g): 40g proteínas, 10g grasas
+   - Patatas (200g): 40g carbohidratos, 4g proteínas
+   - Espinacas (200g): 4g carbohidratos, 4g proteínas
+   - Aceite (20ml): 18g grasas
+   - Almendras (30g): 6g proteínas, 15g grasas, 6g carbohidratos
+   TOTAL: 54g proteínas, 50g carbohidratos, 43g grasas (~800 kcal)
+
+# INSTRUCCIONES PRINCIPALES (OBLIGATORIAS):
+1. SISTEMA MÉTRICO: Usa EXCLUSIVAMENTE gramos (g) y mililitros (ml).
+2. INGREDIENTES: 
+   - SOLO ingredientes comunes en España (ESPAÑA, no Latinoamérica)
+   - PROHIBIDO USAR TÉRMINOS LATINOAMERICANOS. Ejemplos CORRECTOS:
+     * cacahuete (nunca maní)
+     * aguacate (nunca palta)
+     * judías (nunca frijoles o porotos)
+     * calabacín (nunca zapallito o zucchini)
+     * pimiento (nunca pimentón o morrón)
+   - LISTA NEGRA ABSOLUTA (NUNCA USAR):
+     * ${allergies || 'Ninguna'}
+     * ${forbiddenFoods || 'Ninguno'}
+   - OBLIGATORIO INCLUIR: ${favoriteFoods || 'Ninguno'}
+3. CÁLCULOS EXACTOS:
+   - Total calorías diarias: ${calories} kcal (±5%)
+   - Macronutrientes DIARIOS:
+     * Proteínas: ${macroDistribution.proteinGrams}g (${macroDistribution.protein}%)
+     * Carbohidratos: ${macroDistribution.carbsGrams}g (${macroDistribution.carbs}%)
+     * Grasas: ${macroDistribution.fatsGrams}g (${macroDistribution.fats}%)
+   - Fórmula: (proteínas*4 + carbos*4 + grasas*9) debe ser ≈ ${calories} kcal
+
+# DATOS DEL USUARIO:
 - Objetivo: ${goal}
-- Calorías diarias: ${calories} kcal
-- Número de comidas: ${mealsPerDay}
+- Comidas/día: ${mealsPerDay}
+- Preferencias: ${preferences || 'Ninguna'}
 - Alergias: ${allergies || 'Ninguna'}
-- Preferencias alimentarias: ${preferences || 'Ninguna'}
-- Alimentos prohibidos: ${forbiddenFoods || 'Ninguno'}
-- Supermercado de preferencia: ${supermarket}
-- Nivel de cocina: ${cookingLevel}
-- Tiempo disponible por comida: ${timePerMeal} minutos
-- Notas adicionales: ${additionalNotes || 'Ninguna'}
+- Prohibidos: ${forbiddenFoods || 'Ninguno'}
+- Favoritos: ${favoriteFoods || 'Ninguno'}
 
-2. Basándote en esta información, genera un plan de comidas que:
-- Cumpla con el objetivo del usuario (${goal})
-- Se ajuste al presupuesto de ${calories} calorías diarias
-- Incluya ${mealsPerDay} comidas al día
-- Tenga en cuenta las alergias: ${allergies || 'Ninguna'}
-- Respete las preferencias: ${preferences || 'Ninguna'}
-- Excluya: ${forbiddenFoods || 'Ninguno'}
-- Sea adecuado para un nivel de cocina: ${cookingLevel}
-- Cada comida debe poder prepararse en aproximadamente ${timePerMeal} minutos
-- Los ingredientes deben estar disponibles en: ${supermarket}
+# FORMATO DE RESPUESTA (JSON VÁLIDO):
+{
+  "summary": {
+    "goal": "${goal}",
+    "targetCalories": ${calories},
+    "mealsPerDay": ${mealsPerDay},
+    "totalCalories": number,  // Suma de todas las comidas (proteínas*4 + carbos*4 + grasas*9)
+    "totalProteins": number,  // Suma de proteínas de todas las comidas
+    "totalCarbs": number,     // Suma de carbohidratos de todas las comidas
+    "totalFats": number       // Suma de grasas de todas las comidas
+  },
+  "meals": [
+    {
+      "name": "Nombre de la comida (ej: Desayuno)",
+      "calories": number,     // = (proteínas*4 + carbos*4 + grasas*9)
+      "ingredients": "Ingrediente 1: XXXg\nIngrediente 2: YYYml",
+      "preparation": "Instrucciones detalladas paso a paso",
+      "proteins": number,     // Basado en los ingredientes reales
+      "carbs": number,        // Basado en los ingredientes reales
+      "fats": number          // Basado en los ingredientes reales
+    }
+  ]
+}
 
-3. Formato de respuesta:
-- Usa formato Markdown para la respuesta
-- Incluye una lista de compras organizada por categorías
-- Especifica las cantidades de cada ingrediente
-- Incluye instrucciones de preparación claras
-- Asegúrate de que el plan sea variado y equilibrado`;
+# EJEMPLO REALISTE (para ${mealsPerDay} comidas):
+- Desayuno: 20-30g proteínas, 30-50g carbohidratos, 10-15g grasas
+- Comida: 30-40g proteínas, 40-60g carbohidratos, 15-20g grasas
+- Cena: 25-35g proteínas, 20-40g carbohidratos, 10-15g grasas
 
-    const controller = new AbortController();
-    timeoutId = setTimeout(() => controller.abort(), 30000); // Timeout de 30 segundos
+IMPORTANTE: Los macros DEBEN ser coherentes con las cantidades de ingredientes especificadas.
 
-    const response = await fetch(OPENROUTER_API_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'http://localhost:4000',
-        'X-Title': 'Diet Generator App'
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-3.5-turbo',
+# VERIFICACIONES FINALES (OBLIGATORIAS):
+1. ¿Se incluyeron los alimentos favoritos? [${favoriteFoods || 'N/A'}]
+2. ¿Se excluyeron alérgenos? [${allergies || 'N/A'}]
+3. ¿Se excluyeron alimentos prohibidos? [${forbiddenFoods || 'N/A'}]
+4. ¿Los cálculos de macronutrientes son correctos? (proteínas*4 + carbos*4 + grasas*9 ≈ ${calories} kcal)
+5. ¿Las cantidades son realistas para una comida normal?
+6. ¿Los ingredientes son comunes en España?
+
+IMPORTANTE: Responde ÚNICAMENTE con el JSON válido, sin comentarios ni texto adicional.`;
+
+    // Log del prompt que se enviará a la IA
+    console.log('\n=== PROMPT ENVIADO A LA IA ===');
+    console.log(prompt);
+    console.log('===============================\n');
+
+    try {
+      console.log('Enviando solicitud a OpenRouter con modelo:', API_CONFIG.OPENROUTER.MODEL);
+      
+      const requestBody = {
+        model: API_CONFIG.OPENROUTER.MODEL,
         messages: [
           {
             role: 'system',
-            content: 'Eres un asistente de nutrición que ayuda a crear planes de comidas personalizados.'
+            content: 'Eres un experto en nutrición y dietética que habla castellano. Utiliza un formato de desayuno, almuerzo y cena, si el número de comidas es mayor de 3 utiliza más comidas (snack 1, snack 2, etc.). Genera planes de comidas personalizados basados en los parámetros proporcionados presta especial atención a las instrucciones obligatorias del prompt, utiliza ingredientes concretos en lugar de genéricos. Responde ÚNICAMENTE con un JSON válido.'
           },
           {
             role: 'user',
             content: prompt
           }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000
-      }),
-      signal: controller.signal
-    });
+        ]
+      };
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Error en la respuesta de la API:', {
-        status: response.status,
-        statusText: response.statusText,
-        errorData
+      console.log('=== CUERPO DE LA SOLICITUD ===');
+      console.log(JSON.stringify(requestBody, null, 2));
+      console.log('==============================');
+
+      const response = await fetch(API_CONFIG.OPENROUTER.URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'HTTP-Referer': API_CONFIG.OPENROUTER.REFERER,
+          'X-Title': API_CONFIG.OPENROUTER.TITLE
+        },
+        body: JSON.stringify(requestBody)
       });
 
-      let errorMessage = `Error al generar la dieta: ${response.status} ${response.statusText}`;
+      console.log('=== RESPUESTA HTTP ===');
+      console.log('Status:', response.status, response.statusText);
       
-      if (errorData.error?.message) {
-        errorMessage += ` - ${errorData.error.message}`;
-      } else if (errorData.error) {
-        errorMessage += ` - ${JSON.stringify(errorData.error)}`;
+      const responseText = await response.text();
+      console.log('Respuesta en bruto:', responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Error al parsear la respuesta JSON:', e);
+        throw new Error(`La respuesta de la API no es un JSON válido: ${responseText.substring(0, 200)}...`);
       }
       
-      throw new Error(errorMessage);
-    }
+      console.log('=== RESPUESTA DE LA API ===');
+      console.log(JSON.stringify(data, null, 2));
+      
+      if (!response.ok) {
+        console.error('Error en la respuesta de la API:', data);
+        throw new Error(`Error de la API: ${data.error?.message || response.statusText}`);
+      }
+      
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error('Estructura de respuesta inesperada:', data);
+        throw new Error('La respuesta de la API no tiene el formato esperado');
+      }
+      
+      const content = data.choices[0].message.content.trim();
+      
+      console.log('\n=== CONTENIDO DE LA RESPUESTA ===');
+      console.log(content);
+      console.log('=================================\n');
+      
+      // Extraer el JSON de la respuesta
+      let jsonResponse;
+      try {
+        // Buscar el primer { y el último } para extraer el JSON
+        const jsonStart = content.indexOf('{');
+        const jsonEnd = content.lastIndexOf('}') + 1;
+        
+        if (jsonStart === -1 || jsonEnd === 0) {
+          throw new Error('No se encontró un objeto JSON en la respuesta');
+        }
+        
+        const jsonString = content.substring(jsonStart, jsonEnd);
+        console.log('JSON extraído para análisis:', jsonString);
+        
+        // Limpiar el JSON de posibles caracteres inválidos
+        const cleanJsonString = jsonString
+          .replace(/\n/g, '')  // Eliminar saltos de línea
+          .replace(/\r/g, '')   // Eliminar retornos de carro
+          .replace(/\t/g, '')   // Eliminar tabulaciones
+          .replace(/\f/g, '')   // Eliminar saltos de página
+          .replace(/\b(?:true|false|null)\b/gi, match => match.toLowerCase());  // Asegurar booleanos y null en minúsculas
+        
+        console.log('JSON limpio:', cleanJsonString);
+        
+        jsonResponse = JSON.parse(cleanJsonString);
+        console.log('JSON analizado correctamente:', JSON.stringify(jsonResponse, null, 2));
+        
+      } catch (error) {
+        console.error('Error al analizar la respuesta JSON:', error);
+        console.error('Contenido que falló al analizar:', content);
+        throw new Error('El modelo devolvió un formato no válido. Por favor, inténtalo de nuevo.');
+      }
 
-    // Procesar la respuesta exitosa
-    const data = await response.json();
-    console.log('Datos de la respuesta:', JSON.stringify(data, null, 2));
-    
-    if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
-      throw new Error('La respuesta no contiene opciones válidas');
+      // Verificar si el contenido es un JSON válido
+      try {
+        const plan = jsonResponse;
+        res.json({
+          success: true,
+          plan
+        });
+      } catch (parseError) {
+        console.error('Error al parsear JSON:', parseError);
+        console.log('Contenido recibido:', content);
+        
+        // Si no es JSON válido, devolver un error
+        return res.status(500).json({
+          success: false,
+          error: 'El modelo devolvió un formato no válido. Por favor, inténtalo de nuevo.'
+        });
+      }
+    } catch (error) {
+      console.error('Error en la generación del plan:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Error al generar el plan de comidas'
+      });
     }
-    
-    const messageContent = data.choices[0]?.message?.content;
-    if (!messageContent) {
-      throw new Error('No se encontró contenido en la respuesta de la API');
-    }
-    
-    return res.json({ 
-      success: true, 
-      message: messageContent 
-    });
     
   } catch (error) {
     console.error('Error en /generate-diet:', error);
     return res.status(500).json({ 
       success: false, 
-      error: error.message || 'Error al generar la dieta',
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      error: error.message || 'Error al generar la dieta'
     });
-  } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
   }
 });
 

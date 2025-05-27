@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import FormInput from './FormInput';
 import MacroGoals from './MacroGoals';
 import MacroSummary from './MacroSummary';
+import CalorieCalculator from './CalorieCalculator';
 
 const DietForm = ({
   formData,
@@ -15,6 +16,43 @@ const DietForm = ({
   handleSubmit,
   isValid
 }) => {
+  const [showCalorieCalculator, setShowCalorieCalculator] = useState(false);
+
+  // Función para manejar el cálculo de calorías
+  const handleCaloriesCalculated = (calories) => {
+    console.log('handleCaloriesCalculated llamado con:', calories);
+    
+    // Asegurarnos de que tenemos un número válido
+    const caloriesNumber = Number(calories);
+    if (isNaN(caloriesNumber)) {
+      console.error('Valor de calorías inválido recibido:', calories);
+      return;
+    }
+    
+    // Redondear el valor
+    const roundedCalories = Math.round(caloriesNumber);
+    console.log('Actualizando calorías a:', roundedCalories);
+    
+    // Actualizar el estado local primero para feedback inmediato
+    const inputElement = document.querySelector('input[name="calories"]');
+    if (inputElement) {
+      inputElement.value = roundedCalories;
+      // Disparar evento de cambio manualmente
+      const event = new Event('input', { bubbles: true });
+      inputElement.dispatchEvent(event);
+    }
+    
+    // También actualizar a través del manejador de cambios del formulario
+    handleChange({
+      target: {
+        name: 'calories',
+        value: roundedCalories.toString()
+      }
+    });
+    
+    // Cerrar la calculadora
+    setShowCalorieCalculator(false);
+  };
   return (
     <div className="bg-white min-h-screen">
       <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8 w-full">
@@ -147,39 +185,83 @@ const DietForm = ({
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Requerimientos básicos</h2>
             <div className="space-y-6">
               {/* Calorías diarias */}
-              <div className="space-y-2 text-center">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Calorías diarias</h3>
-                <div className="flex justify-center">
-                  <div className="max-w-xs w-full">
-                    <FormInput
-                      name="calories"
+                <div className="space-y-4">
+                <div className="space-y-2 text-center">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Calorías diarias</h3>
+                  <div className="relative">
+                    <input
                       type="number"
-                      min="1000"
-                      max="5000"
-                      step="100"
+                      name="calories"
                       value={formData.calories || ''}
-                      onChange={(e) => handleChange(e)}
-                      error={errors.calories}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Actualizar el valor local inmediatamente
+                        const input = e.target;
+                        if (value === '' || (Number(value) >= 1000 && Number(value) <= 10000)) {
+                          // Actualizar el estado del formulario
+                          handleChange({
+                            target: {
+                              name: 'calories',
+                              value: value === '' ? '' : Math.round(Number(value)).toString()
+                            }
+                          });
+                        } else {
+                          // Si el valor no es válido, mantener el valor anterior
+                          input.value = formData.calories || '';
+                        }
+                      }}
+                      onBlur={(e) => {
+                        // Asegurar que el valor esté dentro del rango al perder el foco
+                        let value = Number(e.target.value);
+                        if (isNaN(value) || value < 1000) value = 2000;
+                        value = Math.max(1000, Math.min(10000, value));
+                        // Actualizar el valor del input directamente
+                        e.target.value = value;
+                        // Actualizar el estado del formulario
+                        handleChange({
+                          target: {
+                            name: 'calories',
+                            value: value.toString()
+                          }
+                        });
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-xl font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="2000"
+                      min="1000"
+                      max="10000"
+                      step="50"
                       required
-                      containerClass="mb-0"
-                      placeholder="Ej: 2000"
-                      className="text-center w-full"
+                    />
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">kcal</span>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    <button
+                      type="button"
+                      onClick={() => setShowCalorieCalculator(!showCalorieCalculator)}
+                      className="text-primary-600 hover:text-primary-800 font-medium focus:outline-none"
+                    >
+                      {showCalorieCalculator ? 'Ocultar calculadora' : 'Calcular automáticamente'}
+                    </button>
+                  </p>
+                </div>
+                
+                {/* Calculadora de calorías */}
+                {showCalorieCalculator && (
+                  <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    <CalorieCalculator 
+                      onCalculate={handleCaloriesCalculated} 
+                      selectedGoal={formData.goal}
+                      goalOptions={goalOptions}
                     />
                   </div>
-                </div>
-                <p className="text-xs text-gray-500">
-                  Meta calórica diaria recomendada
-                </p>
-                {errors.calories && (
-                  <p className="mt-1 text-xs text-red-600">{errors.calories}</p>
                 )}
               </div>
               
               {/* Comidas por día */}
               <div className="space-y-2">
                 <h3 className="text-sm font-medium text-gray-700 mb-2">Comidas por día</h3>
-                <div className="grid grid-cols-3 gap-3">
-                  {[3, 4, 5].map((count) => (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[3, 4, 5, 6].map((count) => (
                     <button
                       key={count}
                       type="button"
@@ -191,7 +273,7 @@ const DietForm = ({
                       }`}
                     >
                       <span className="text-base font-medium">{count}</span>
-                      <span className="text-xs text-gray-500">Comidas</span>
+                      <span className="text-xs text-gray-500">Comida{count > 1 ? 's' : ''}</span>
                     </button>
                   ))}
                 </div>
@@ -217,9 +299,8 @@ const DietForm = ({
                       id: 'omnivoro',
                       title: 'Omnívoro',
                       icon: (
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-utensils-icon lucide-utensils"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+
                       ),
                       description: 'Incluye todo tipo de alimentos: carnes, pescados, lácteos, huevos, frutas, verduras, cereales y legumbres.'
                     },
@@ -227,9 +308,8 @@ const DietForm = ({
                       id: 'vegetariano',
                       title: 'Vegetariano',
                       icon: (
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-carrot-icon lucide-carrot"><path d="M2.27 21.7s9.87-3.5 12.73-6.36a4.5 4.5 0 0 0-6.36-6.37C5.77 11.84 2.27 21.7 2.27 21.7zM8.64 14l-2.05-2.04M15.34 15l-2.46-2.46"/><path d="M22 9s-1.33-2-3.5-2C16.86 7 15 9 15 9s1.33 2 3.5 2S22 9 22 9z"/><path d="M15 2s-2 1.33-2 3.5S15 9 15 9s2-1.84 2-3.5C17 3.33 15 2 15 2z"/></svg>
+
                       ),
                       description: 'Incluye lácteos, huevos, frutas, verduras, cereales y legumbres, sin carnes ni pescados.'
                     },
@@ -237,10 +317,9 @@ const DietForm = ({
                       id: 'vegano',
                       title: 'Vegano',
                       icon: (
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 9a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-leaf-icon lucide-leaf"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+
+
                       ),
                       description: 'Solo alimentos de origen vegetal: frutas, verduras, cereales, legumbres, frutos secos y semillas.'
                     },
@@ -248,9 +327,8 @@ const DietForm = ({
                       id: 'sin_gluten',
                       title: 'Sin gluten',
                       icon: (
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-wheat-off-icon lucide-wheat-off"><path d="m2 22 10-10"/><path d="m16 8-1.17 1.17"/><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="m8 8-.53.53a3.5 3.5 0 0 0 0 4.94L9 15l1.53-1.53c.55-.55.88-1.25.98-1.97"/><path d="M10.91 5.26c.15-.26.34-.51.56-.73L13 3l1.53 1.53a3.5 3.5 0 0 1 .28 4.62"/><path d="M20 2h2v2a4 4 0 0 1-4 4h-2V6a4 4 0 0 1 4-4Z"/><path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="m16 16-.53.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.49 3.49 0 0 1 1.97-.98"/><path d="M18.74 13.09c.26-.15.51-.34.73-.56L21 11l-1.53-1.53a3.5 3.5 0 0 0-4.62-.28"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+
                       ),
                       description: 'Elimina el trigo, cebada, centeno y sus derivados. Incluye alternativas sin gluten.'
                     },
@@ -258,9 +336,8 @@ const DietForm = ({
                       id: 'sin_lactosa',
                       title: 'Sin lactosa',
                       icon: (
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-milk-off-icon lucide-milk-off"><path d="M8 2h8"/><path d="M9 2v1.343M15 2v2.789a4 4 0 0 0 .672 2.219l.656.984a4 4 0 0 1 .672 2.22v1.131M7.8 7.8l-.128.192A4 4 0 0 0 7 10.212V20a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-3"/><path d="M7 15a6.47 6.47 0 0 1 5 0 6.472 6.472 0 0 0 3.435.435"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+
                       ),
                       description: 'Excluye la leche y derivados lácteos que contengan lactosa, incluyendo alternativas vegetales.'
                     }
@@ -274,17 +351,19 @@ const DietForm = ({
                           : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50'
                       }`}
                     >
-                      <div className="flex items-center mb-2 flex-grow">
-                        <div className={`p-1.5 rounded-lg mr-3 flex-shrink-0 ${
+                      <div className="flex items-start mb-2">
+                        <div className={`p-1.5 rounded-lg mr-3 flex-shrink-0 w-8 h-8 flex items-center justify-center ${
                           formData.preferences === diet.id 
                             ? 'bg-primary-100 text-primary-600' 
                             : 'bg-gray-100 text-gray-600'
                         }`}>
-                          {diet.icon}
+                          <div className="w-5 h-5 flex items-center justify-center">
+                            {diet.icon}
+                          </div>
                         </div>
-                        <span className="font-medium text-gray-900">{diet.title}</span>
+                        <span className="font-medium text-gray-900 leading-tight">{diet.title}</span>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">{diet.description}</p>
+                      <p className="text-xs text-gray-500 mt-2">{diet.description}</p>
                     </div>
                   ))}
                 </div>

@@ -84,23 +84,45 @@ function App() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log(`[handleChange] Campo cambiado - ${name}:`, value, 'Tipo:', typeof value); // Para depuración
     
     if (name === 'goal' && value) {
       const distributionKey = goalToMacroDistribution[value] || 'mantenimiento';
       const distribution = goalMacroDistributions[distributionKey];
       
-      setFormData(prev => ({
-        ...prev,
-        [name]: value,
-        proteinPercentage: distribution.protein.toString(),
-        carbsPercentage: distribution.carbs.toString(),
-        fatsPercentage: distribution.fats.toString()
-      }));
+      setFormData(prev => {
+        const newState = {
+          ...prev,
+          [name]: value,
+          proteinPercentage: distribution.protein.toString(),
+          carbsPercentage: distribution.carbs.toString(),
+          fatsPercentage: distribution.fats.toString()
+        };
+        console.log('[handleChange] Nuevo estado (goal):', newState);
+        return newState;
+      });
+    } else if (name === 'calories') {
+      // Asegurarse de que las calorías sean un número válido
+      const caloriesValue = value === '' ? '' : value.replace(/\D/g, '');
+      console.log('[handleChange] Procesando calorías. Valor original:', value, 'Valor procesado:', caloriesValue);
+      
+      setFormData(prev => {
+        const newState = {
+          ...prev,
+          [name]: caloriesValue
+        };
+        console.log('[handleChange] Nuevo estado (calorías):', newState);
+        return newState;
+      });
     } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+      setFormData(prev => {
+        const newState = {
+          ...prev,
+          [name]: value
+        };
+        console.log('[handleChange] Nuevo estado (otro campo):', newState);
+        return newState;
+      });
     }
     
     if (errors[name]) {
