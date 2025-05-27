@@ -2,9 +2,18 @@ import express from "express";
 import { body, validationResult } from "express-validator";
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Cargar variables de entorno
+dotenv.config({
+  path: path.resolve(__dirname, process.env.NODE_ENV === 'production' ? '../.env.production' : '../.env')
+});
 const router = express.Router();
-dotenv.config();
+
 
 // Depuración de variables de entorno
 console.log('Variables de entorno en generateDiet.js:', {
