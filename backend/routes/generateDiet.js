@@ -16,7 +16,7 @@ console.log('Variables de entorno en generateDiet.js:', {
 const API_CONFIG = {
   OPENROUTER: {
     URL: process.env.OPENROUTER_URL || 'https://openrouter.ai/api/v1/chat/completions',
-    MODEL: process.env.OPENROUTER_MODEL || 'qwen/qwen3-14b:free',
+    MODEL: process.env.OPENROUTER_MODEL || 'deepseek/deepseek-prover-v2:free',
     REFERER: process.env.APP_URL || 'http://localhost:5173',
     TITLE: process.env.APP_TITLE || 'Nutrify'
   },

@@ -10,9 +10,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ mode }) => ({
   base: '/',
-  plugins: [react()],
+  plugins: [
+    react(),
+  ],
   define: {
     'process.env': {}
+  },
+  publicDir: 'public',
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom'],
+    esbuildOptions: {
+      // Soluciona problemas con paquetes que usan módulos de Node.js
+      define: {
+        global: 'globalThis'
+      }
+    }
   },
   build: {
     outDir: 'dist',

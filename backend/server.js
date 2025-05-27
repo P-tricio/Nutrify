@@ -28,8 +28,32 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'https://nutrify-nine.vercel.app',
-  'https://nutrify-s234.onrender.com'
+  'https://nutrify-s234.onrender.com',
+  'https://nutrify-nine.vercel.app/'
 ];
+
+// Servir archivos estáticos del frontend en producción
+if (process.env.NODE_ENV === 'production') {
+  // Ruta al directorio de construcción del frontend
+  const frontendPath = path.join(process.cwd(), '../frontend/dist');
+  
+  // Servir archivos estáticos
+  app.use(express.static(frontendPath, {
+    setHeaders: (res, path) => {
+      // Configurar correctamente los tipos MIME
+      if (path.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      } else if (path.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css');
+      }
+    }
+  }));
+  
+  // Manejar rutas del frontend (SPA)
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  });
+}
 
 const corsOptions = {
   origin: function (origin, callback) {
