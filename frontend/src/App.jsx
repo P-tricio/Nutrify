@@ -175,14 +175,18 @@ function App() {
         }
       };
       
-      console.log('Enviando solicitud a /api/ con datos:', JSON.stringify(requestBody, null, 2));
+      console.log('Enviando solicitud a la API con datos:', JSON.stringify(requestBody, null, 2));
       
       let res;
       let data;
       
+      // Importar la configuración
+      const config = (await import('./config.js')).default;
+      const apiUrl = config.apiUrl;
+      
       try {
-        console.log('Enviando solicitud a la API...');
-        res = await fetch("/api/", {
+        console.log('Enviando solicitud a la API...', `${apiUrl}/api/`);
+        res = await fetch(`${apiUrl}/api/`, {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
