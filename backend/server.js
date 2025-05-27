@@ -11,7 +11,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Cargar variables de entorno
-dotenv.config({ path: path.resolve(__dirname, '.env') });
+const envFile = process.env.NODE_ENV === 'production' 
+  ? '.env.production' 
+  : '.env';
+dotenv.config({ path: path.resolve(__dirname, envFile) });
 
 console.log('Variables de entorno cargadas en server.js:', {
   PORT: process.env.PORT,
