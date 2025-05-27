@@ -258,7 +258,22 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON válido, sin comentarios ni texto a
       console.log('=== CUERPO DE LA SOLICITUD ===');
       console.log(JSON.stringify(requestBody, null, 2));
       console.log('==============================');
+// Agrega esto justo antes del fetch
+console.log('=== VERIFICACIÓN DE VARIABLES ===');
+console.log('API Key presente:', !!process.env.OPENROUTER_API_KEY);
+console.log('URL de la API:', API_CONFIG.OPENROUTER.URL);
+console.log('Modelo:', API_CONFIG.OPENROUTER.MODEL);
+console.log('Referer:', API_CONFIG.OPENROUTER.REFERER);
+console.log('Título:', API_CONFIG.OPENROUTER.TITLE);
+console.log('=================================\n');
 
+// Imprime los headers que se enviarán
+console.log('=== HEADERS DE LA PETICIÓN ===');
+console.log('Content-Type:', 'application/json');
+console.log('Authorization:', `Bearer ${process.env.OPENROUTER_API_KEY ? '***API_KEY_PRESENTE***' : 'API_KEY_FALTANTE'}`);
+console.log('HTTP-Referer:', API_CONFIG.OPENROUTER.REFERER);
+console.log('X-Title:', API_CONFIG.OPENROUTER.TITLE);
+console.log('=================================\n');
       const response = await fetch(API_CONFIG.OPENROUTER.URL, {
         method: 'POST',
         headers: {
