@@ -185,8 +185,9 @@ function App() {
       const apiUrl = config.apiUrl;
       
       try {
-        console.log('Enviando solicitud a la API...', `${apiUrl}/api/`);
-        res = await fetch(`${apiUrl}/api/`, {
+        const apiEndpoint = `${apiUrl}/api/generate`;
+        console.log('Enviando solicitud a la API...', apiEndpoint);
+        res = await fetch(apiEndpoint, {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
