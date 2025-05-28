@@ -266,6 +266,9 @@ console.log('Modelo:', API_CONFIG.OPENROUTER.MODEL);
 console.log('Referer:', API_CONFIG.OPENROUTER.REFERER);
 console.log('Título:', API_CONFIG.OPENROUTER.TITLE);
 console.log('=================================\n');
+console.log("🔐 NODE_ENV:", process.env.NODE_ENV);
+console.log("🔐 API_KEY:", process.env.OPENROUTER_API_KEY ? "CARGADA" : "NO CARGADA");
+
 
 // Imprime los headers que se enviarán
 console.log('=== HEADERS DE LA PETICIÓN ===');
