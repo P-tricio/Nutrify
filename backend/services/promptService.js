@@ -41,7 +41,7 @@ export const generateDietPrompt = (userData) => {
     (macroDistribution.fatsGrams * 9));
   console.log('======================================');
 
-  return `Eres un experto nutricionista que habla castellano, especializado en la dieta mediterránea española. Sigue ESTAS INSTRUCCIONES AL PIE DE LA LETRA para generar un plan de comidas personalizado ajustando las cantidades de ingredientes a los macros objetivo:
+  return `Eres un experto nutricionista que habla castellano, especializado en la dieta mediterránea española, utiliza estructuras de comidas comunes en España. Sigue ESTAS INSTRUCCIONES AL PIE DE LA LETRA para generar un plan de comidas personalizado ajustando las cantidades de ingredientes a los macros objetivo:
   
     # CÁLCULO DE MACROS (OBLIGATORIO):
 - Usa valores promedio de la base de datos de alimentos (como USDA o similar) para cada ingrediente.
@@ -73,6 +73,7 @@ export const generateDietPrompt = (userData) => {
 # INSTRUCCIONES PRINCIPALES (OBLIGATORIAS):
 1. SISTEMA MÉTRICO: Usa EXCLUSIVAMENTE gramos (g) y mililitros (ml).
 2. INGREDIENTES: 
+    -Ingredientes concretos, evita generalizaciones como "pescado" o "carne". Puedes utilizar ingredientes como "pescado azul" o "carne roja".
    - SOLO ingredientes comunes en España (ESPAÑA, no Latinoamérica)
    - PROHIBIDO USAR TÉRMINOS LATINOAMERICANOS. Ejemplos CORRECTOS:
      * cacahuete (nunca maní)
