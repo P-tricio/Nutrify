@@ -155,7 +155,7 @@ export const generateWithGroq = async (messages, options = {}) => {
  */
 export const generateDietWithGroq = async (prompt, options = {}) => {
   const defaultOptions = {
-    model: API_CONFIG.GROQ.MODELS.COMPOUND_BETA_MINI, // Usando Compound Beta Mini como modelo predeterminado
+    model: API_CONFIG.GROQ.MODELS.COMPOUND_BETA, // Usando Compound Beta Mini como modelo predeterminado
     temperature: 0.7,  // Más bajo para respuestas más deterministas
     max_tokens: 4000,  // Suficiente para respuestas detalladas
     ...options
