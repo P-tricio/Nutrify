@@ -46,7 +46,7 @@ export const generateDietPrompt = (userData) => {
     # CÁLCULO DE MACROS (OBLIGATORIO):
 - Usa valores promedio de la base de datos de alimentos (como USDA o similar) para cada ingrediente.
 - Si un ingrediente está cocido, ajusta la cantidad real en base al cambio de peso por cocción (ej: arroz cocido pesa 3 veces más que crudo).
-1. Para CADA comida, calcular los macros basados en los ingredientes reales:
+1. Para CADA comida, calcular los macros basados en los ingredientes reales si no los encuentras en las bases de datos (no inventes ingredientes):
    - PROTEÍNAS:
      * Carnes magras (pollo, pavo): 25-30g por 100g
      * Pescados (salmón, atún): 20-25g por 100g
@@ -69,13 +69,6 @@ export const generateDietPrompt = (userData) => {
      * Pescados azules: 10-15g por 100g
      * Huevo: 5g por unidad (clara + yema)
 
-2. EJEMPLO DE CÁLCULO para una comida con 200g de salmón, 200g de patatas, 200g de espinacas, 20ml de aceite y 30g de almendras:
-   - Salmón (200g): 40g proteínas, 10g grasas
-   - Patatas (200g): 40g carbohidratos, 4g proteínas
-   - Espinacas (200g): 4g carbohidratos, 4g proteínas
-   - Aceite (20ml): 18g grasas
-   - Almendras (30g): 6g proteínas, 15g grasas, 6g carbohidratos
-   TOTAL: 54g proteínas, 50g carbohidratos, 43g grasas (~800 kcal)
 
 # INSTRUCCIONES PRINCIPALES (OBLIGATORIAS):
 1. SISTEMA MÉTRICO: Usa EXCLUSIVAMENTE gramos (g) y mililitros (ml).

@@ -1,8 +1,8 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { generateDietPlan } from '../services/openRouterService.js';
 import { generateDietPrompt } from '../services/promptService.js';
 import { parseApiResponse } from '../services/responseService.js';
+import { generateDietWithGroq } from '../services/groqService.js';
 
 const router = express.Router();
 
@@ -22,7 +22,7 @@ const validateInput = [
 router.post('/', validateInput, async (req, res, next) => {
   try {
     const prompt = generateDietPrompt(req.body);
-    const response = await generateDietPlan(prompt);
+    const response = await generateDietWithGroq(prompt);
     const dietPlan = parseApiResponse(response);
     
     res.json({ success: true, plan: dietPlan });

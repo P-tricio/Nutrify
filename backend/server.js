@@ -5,6 +5,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import generateDiet from "./routes/generateDiet.js";
+import metricsRouter from "./routes/metrics.js";
 
 // Configuración de rutas de archivos ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -96,7 +97,8 @@ app.get('/api/health', (req, res) => {
 });
 
 // Rutas de la API
-app.use("/api", generateDiet); // Esto hará que todas las rutas en generateDiet.js estén bajo /api
+app.use("/api/generate", generateDiet);
+app.use("/api/metrics", metricsRouter);
 
 // Manejador de rutas no encontradas
 app.use((req, res, next) => {
