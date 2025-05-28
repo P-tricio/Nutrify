@@ -2,9 +2,18 @@ import express from "express";
 import { body, validationResult } from "express-validator";
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Cargar variables de entorno
+dotenv.config({
+  path: path.resolve(__dirname, process.env.NODE_ENV === 'production' ? '../.env.production' : '../.env')
+});
 const router = express.Router();
-dotenv.config();
+
 
 // Depuración de variables de entorno
 console.log('Variables de entorno en generateDiet.js:', {
@@ -16,7 +25,7 @@ console.log('Variables de entorno en generateDiet.js:', {
 const API_CONFIG = {
   OPENROUTER: {
     URL: process.env.OPENROUTER_URL || 'https://openrouter.ai/api/v1/chat/completions',
-    MODEL: process.env.OPENROUTER_MODEL || 'qwen/qwen3-14b:free',
+    MODEL: process.env.OPENROUTER_MODEL || 'deepseek/deepseek-prover-v2:free',
     REFERER: process.env.APP_URL || 'http://localhost:5173',
     TITLE: process.env.APP_TITLE || 'Nutrify'
   },
@@ -184,20 +193,25 @@ router.post("/", validateInput, async (req, res) => {
     "goal": "${goal}",
     "targetCalories": ${calories},
     "mealsPerDay": ${mealsPerDay},
-    "totalCalories": number,  // Suma de todas las comidas (proteínas*4 + carbos*4 + grasas*9)
-    "totalProteins": number,  // Suma de proteínas de todas las comidas
-    "totalCarbs": number,     // Suma de carbohidratos de todas las comidas
-    "totalFats": number       // Suma de grasas de todas las comidas
+    "totalCalories": "Aprox. X-XX kcal",  // Rango aproximado de calorías totales
+    "totalProteins": "Aprox. XX-XXg",     // Rango aproximado de proteínas totales
+    "totalCarbs": "Aprox. XX-XXg",        // Rango aproximado de carbohidratos totales
+    "totalFats": "Aprox. XX-XXg"          // Rango aproximado de grasas totales
   },
   "meals": [
     {
       "name": "Nombre de la comida (ej: Desayuno)",
-      "calories": number,     // = (proteínas*4 + carbos*4 + grasas*9)
-      "ingredients": "Ingrediente 1: XXXg\nIngrediente 2: YYYml",
+      "calories": "Aprox. XXX-XXX kcal",  // Rango aproximado
+      "ingredients": [
+        { "name": "Ingrediente 1", "amount": "XXXg" },
+        { "name": "Ingrediente 2", "amount": "XXXml" }
+      ],
       "preparation": "Instrucciones detalladas paso a paso",
-      "proteins": number,     // Basado en los ingredientes reales
-      "carbs": number,        // Basado en los ingredientes reales
-      "fats": number          // Basado en los ingredientes reales
+      "macros": {
+        "proteins": "XX-XXg",  // Rango aproximado
+        "carbs": "XX-XXg",     // Rango aproximado
+        "fats": "XX-XXg"       // Rango aproximado
+      }
     }
   ]
 }
@@ -244,7 +258,25 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON válido, sin comentarios ni texto a
       console.log('=== CUERPO DE LA SOLICITUD ===');
       console.log(JSON.stringify(requestBody, null, 2));
       console.log('==============================');
+// Agrega esto justo antes del fetch
+console.log('=== VERIFICACIÓN DE VARIABLES ===');
+console.log('API Key presente:', !!process.env.OPENROUTER_API_KEY);
+console.log('URL de la API:', API_CONFIG.OPENROUTER.URL);
+console.log('Modelo:', API_CONFIG.OPENROUTER.MODEL);
+console.log('Referer:', API_CONFIG.OPENROUTER.REFERER);
+console.log('Título:', API_CONFIG.OPENROUTER.TITLE);
+console.log('=================================\n');
+console.log("🔐 NODE_ENV:", process.env.NODE_ENV);
+console.log("🔐 API_KEY:", process.env.OPENROUTER_API_KEY ? "CARGADA" : "NO CARGADA");
 
+
+// Imprime los headers que se enviarán
+console.log('=== HEADERS DE LA PETICIÓN ===');
+console.log('Content-Type:', 'application/json');
+console.log('Authorization:', `Bearer ${process.env.OPENROUTER_API_KEY ? '***API_KEY_PRESENTE***' : 'API_KEY_FALTANTE'}`);
+console.log('HTTP-Referer:', API_CONFIG.OPENROUTER.REFERER);
+console.log('X-Title:', API_CONFIG.OPENROUTER.TITLE);
+console.log('=================================\n');
       const response = await fetch(API_CONFIG.OPENROUTER.URL, {
         method: 'POST',
         headers: {
@@ -272,6 +304,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON válido, sin comentarios ni texto a
       
       console.log('=== RESPUESTA DE LA API ===');
       console.log(JSON.stringify(data, null, 2));
+      console.log("🔍 Respuesta completa del modelo:", JSON.stringify(data, null, 2));
       
       if (!response.ok) {
         console.error('Error en la respuesta de la API:', data);
