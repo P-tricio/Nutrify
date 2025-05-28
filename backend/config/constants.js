@@ -8,6 +8,8 @@ export const API_CONFIG = {
   GROQ: {
     // Modelos disponibles en Groq (actualizado Mayo 2024)
     MODELS: {
+      COMPOUND_BETA_MINI: 'compound-beta-mini',
+      COMPOUND_BETA: 'compound-beta',
       // Modelos Mixtral (Mistral AI)
       MIXTRAL_8X7B: 'mixtral-8x7b-32768',
       MIXTRAL_8X22B: 'mixtral-8x22b-32768',
@@ -85,7 +87,7 @@ export const API_CONFIG = {
     },
     // Configuración por defecto
     DEFAULTS: {
-      MODEL: 'mixtral-8x7b-32768',
+      MODEL: 'compound-beta-mini',
       TEMPERATURE: 0.7,
       MAX_TOKENS: 4000,
       TOP_P: 1,
