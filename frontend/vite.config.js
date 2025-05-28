@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
     react(),
   ],
   define: {
-    'process.env': {}
+
   },
   publicDir: 'public',
   optimizeDeps: {
