@@ -304,6 +304,7 @@ console.log('=================================\n');
       
       console.log('=== RESPUESTA DE LA API ===');
       console.log(JSON.stringify(data, null, 2));
+      console.log("🔍 Respuesta completa del modelo:", JSON.stringify(data, null, 2));
       
       if (!response.ok) {
         console.error('Error en la respuesta de la API:', data);
