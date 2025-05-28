@@ -153,24 +153,62 @@ export const generateWithGroq = async (messages, options = {}) => {
  * @param {Object} options - Opciones adicionales para la generación
  * @returns {Promise<Object>} Plan de dieta generado
  */
+// Estilos culinarios para añadir variedad
+const CULINARY_STYLES = [
+  'mediterráneo', 'asiático', 'latinoamericano', 'vegetariano', 'vegano',
+  'keto', 'bajo en carbohidratos', 'alto en proteínas', 'mediterráneo moderno',
+  'fusión', 'tradicional español', 'cocina de mercado'
+];
+
+// Ingredientes de temporada (puedes actualizarlos según la estación)
+const SEASONAL_INGREDIENTS = {
+  verano: ['sandía', 'melón', 'tomate', 'pepino', 'calabacín', 'berenjena', 'albahaca', 'melocotón'],
+  otoño: ['calabaza', 'boniato', 'setas', 'granada', 'caqui', 'coliflor', 'manzana', 'pera'],
+  invierno: ['coles', 'espinacas', 'acelgas', 'naranja', 'kiwi', 'aguacate', 'alcachofa'],
+  primavera: ['fresas', 'cerezas', 'espárragos', 'guisantes', 'habas', 'alcachofa', 'rábano']
+};
+
+const getRandomElement = (array) => array[Math.floor(Math.random() * array.length)];
+
 export const generateDietWithGroq = async (prompt, options = {}) => {
+  // Determinar la estación actual
+  const currentMonth = new Date().getMonth();
+  let season = 'primavera';
+  if (currentMonth >= 5 && currentMonth <= 7) season = 'verano';
+  else if (currentMonth >= 8 && currentMonth <= 10) season = 'otoño';
+  else if (currentMonth === 11 || currentMonth <= 1) season = 'invierno';
+
+  // Seleccionar estilo culinario aleatorio
+  const culinaryStyle = 'mediterráneo';
+  const seasonalIngredient = getRandomElement(SEASONAL_INGREDIENTS[season] || []);
+
   const defaultOptions = {
-    model: API_CONFIG.GROQ.MODELS.COMPOUND_BETA, // Usando Compound Beta Mini como modelo predeterminado
-    temperature: 0.7,  // Más bajo para respuestas más deterministas
-    max_tokens: 4000,  // Suficiente para respuestas detalladas
+    model: API_CONFIG.GROQ.MODELS.COMPOUND_BETA,
+    temperature: 0.8,  // Aumentamos ligeramente la temperatura para más variedad
+    max_tokens: 4000,
     ...options
   };
+
+  const systemPrompt = `Eres un chef nutricionista experto en cocina de estilo ${culinaryStyle}. \
+` +
+    `Incorpora ingredientes de temporada como ${seasonalIngredient} en las recetas cuando sea posible. \
+` +
+    `Proporciona recetas creativas y variadas, evitando repetir los mismos platos. \
+` +
+    `Responde ÚNICAMENTE con un JSON válido sin comentarios.`;
 
   const messages = [
     {
       role: 'system',
-      content: 'Eres un asistente de nutrición experto en generar planes de alimentación personalizados. Responde ÚNICAMENTE con un JSON válido sin comentarios.'
+      content: systemPrompt
     },
     {
       role: 'user',
       content: prompt
     }
   ];
+
+  console.log(`Generando dieta con estilo: ${culinaryStyle}, ingrediente estacional: ${seasonalIngredient}`);
 
   try {
     const response = await generateWithGroq(messages, defaultOptions);
