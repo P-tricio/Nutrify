@@ -29,7 +29,7 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
   'https://nutrify-nine.vercel.app',
   'https://nutrify-s234.onrender.com',
-  'https://nutrify-nine.vercel.app/'
+  'https://nutrify-nine.vercel.app'
 ];
 
 // Servir archivos estáticos del frontend en producción
@@ -63,9 +63,10 @@ const corsOptions = {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
