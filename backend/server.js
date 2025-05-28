@@ -165,12 +165,29 @@ const gracefulShutdown = () => {
 
 // Al final de server.js
 app.use((err, req, res, next) => {
-  console.error('Error no manejado:', err);
+  console.error('Error no manejado:', {
+    message: err.message,
+    stack: err.stack,
+    code: err.code,
+    status: err.status,
+    path: req.path,
+    method: req.method,
+    body: req.body
+  });
   
-  res.status(500).json({
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  res.status(err.status || 500).json({
     success: false,
     error: 'Error interno del servidor',
-    details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    ...(isDevelopment && {
+      details: {
+        message: err.message,
+        stack: err.stack,
+        code: err.code,
+        status: err.status
+      }
+    })
   });
 });
 
