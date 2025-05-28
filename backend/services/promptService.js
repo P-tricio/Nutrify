@@ -10,25 +10,38 @@ export const generateDietPrompt = (userData) => {
     macros = {}
   } = userData;
     
+  // Calcular la distribución de macronutrientes
   const macroDistribution = macros?.proteinPercentage && macros?.carbsPercentage && macros?.fatsPercentage
-  ? {
-      protein: macros.proteinPercentage,
-      carbs: macros.carbsPercentage,
-      fats: macros.fatsPercentage,
-      proteinGrams: macros.protein,
-      carbsGrams: macros.carbs,
-      fatsGrams: macros.fats
-    }
-  : {
-      protein: 30,
-      carbs: 40,
-      fats: 30,
-      proteinGrams: Math.round((calories * 0.3) / 4),
-      carbsGrams: Math.round((calories * 0.4) / 4),
-      fatsGrams: Math.round((calories * 0.3) / 9)
-    };
+    ? {
+        protein: macros.proteinPercentage,
+        carbs: macros.carbsPercentage,
+        fats: macros.fatsPercentage,
+        proteinGrams: macros.protein,
+        carbsGrams: macros.carbs,
+        fatsGrams: macros.fats
+      }
+    : {
+        protein: 30,
+        carbs: 40,
+        fats: 30,
+        proteinGrams: Math.round((calories * 0.3) / 4),
+        carbsGrams: Math.round((calories * 0.4) / 4),
+        fatsGrams: Math.round((calories * 0.3) / 9)
+      };
 
-    const prompt = `Eres un experto nutricionista que habla castellano, especializado en la dieta mediterránea española. Sigue ESTAS INSTRUCCIONES AL PIE DE LA LETRA para generar un plan de comidas personalizado ajustando las cantidades de ingredientes a los macros objetivo:
+  // Log de depuración
+  console.log('=== DISTRIBUCIÓN DE MACRONUTRIENTES ===');
+  console.log('Proteínas:', macroDistribution.protein, '% -', macroDistribution.proteinGrams, 'g');
+  console.log('Carbohidratos:', macroDistribution.carbs, '% -', macroDistribution.carbsGrams, 'g');
+  console.log('Grasas:', macroDistribution.fats, '% -', macroDistribution.fatsGrams, 'g');
+  console.log('Calorías totales:', calories);
+  console.log('Calorías calculadas:', 
+    (macroDistribution.proteinGrams * 4) + 
+    (macroDistribution.carbsGrams * 4) + 
+    (macroDistribution.fatsGrams * 9));
+  console.log('======================================');
+
+  return `Eres un experto nutricionista que habla castellano, especializado en la dieta mediterránea española. Sigue ESTAS INSTRUCCIONES AL PIE DE LA LETRA para generar un plan de comidas personalizado ajustando las cantidades de ingredientes a los macros objetivo:
   
     # CÁLCULO DE MACROS (OBLIGATORIO):
 - Usa valores promedio de la base de datos de alimentos (como USDA o similar) para cada ingrediente.
@@ -123,12 +136,12 @@ export const generateDietPrompt = (userData) => {
   ]
 }
 
-# EJEMPLO REALISTE (para ${mealsPerDay} comidas):
+# EJEMPLO REALISTA (para ${mealsPerDay} comidas):
 - Desayuno: 20-30g proteínas, 30-50g carbohidratos, 10-15g grasas
 - Comida: 30-40g proteínas, 40-60g carbohidratos, 15-20g grasas
 - Cena: 25-35g proteínas, 20-40g carbohidratos, 10-15g grasas
 
-IMPORTANTE: Los macros DEBEN ser coherentes con las cantidades de ingredientes especificadas.
+IMPORTANTE: Los macros DEBEN ser coherentes con las cantidades de ingredientes especificados.
 
 # VERIFICACIONES FINALES (OBLIGATORIAS):
 1. ¿Se incluyeron los alimentos favoritos? [${favoriteFoods || 'N/A'}]
@@ -139,17 +152,4 @@ IMPORTANTE: Los macros DEBEN ser coherentes con las cantidades de ingredientes e
 6. ¿Los ingredientes son comunes en España?
 
 IMPORTANTE: Responde ÚNICAMENTE con el JSON válido, sin comentarios ni texto adicional.`;
-    return prompt;
-  };
-
-      
-      console.log('=== DISTRIBUCIÓN DE MACRONUTRIENTES ===');
-      console.log('Proteínas:', macroDistribution.protein, '% -', macroDistribution.proteinGrams, 'g');
-      console.log('Carbohidratos:', macroDistribution.carbs, '% -', macroDistribution.carbsGrams, 'g');
-      console.log('Grasas:', macroDistribution.fats, '% -', macroDistribution.fatsGrams, 'g');
-      console.log('Calorías totales:', calories);
-      console.log('Calorías calculadas:', 
-        (macroDistribution.proteinGrams * 4) + 
-        (macroDistribution.carbsGrams * 4) + 
-        (macroDistribution.fatsGrams * 9));
-      console.log('======================================');
+};
