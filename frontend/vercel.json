@@ -1,0 +1,9 @@
+{
+  "version": 2,
+ 
+  "routes": [
+    { "src": "/api/(.*)", "dest": "https://nutrify-s234.onrender.com/api/$1" },
+    { "src": "/assets/(.*)", "dest": "/assets/$1" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}
