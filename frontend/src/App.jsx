@@ -31,7 +31,7 @@ export const goalMacroDistributions = {
 };
 
 function App() {
-  const { loginWithRedirect, logout, isAuthenticated, isLoading: authLoading, user } = useAuth0();
+  const { loginWithRedirect, logout, isAuthenticated, isLoading: authLoading, user, getAccessTokenSilently } = useAuth0();
 
   const [formData, setFormData] = useState({
     calories: '',
@@ -139,11 +139,14 @@ function App() {
       const config = (await import('./config.js')).default;
       const apiUrl = config.apiUrl;
 
+      const token = await getAccessTokenSilently();
+
       const res = await fetch(`${apiUrl}/api/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json"
+          "Accept": "application/json",
+          "Authorization": `Bearer ${token}`
         },
         credentials: 'include',
         body: JSON.stringify(requestBody)
