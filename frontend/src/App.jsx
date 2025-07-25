@@ -189,7 +189,7 @@ function App() {
     <div className="min-h-screen bg-neutral-50 p-3 sm:p-4">
       <div className="flex justify-between items-center mb-4">
         <span className="text-gray-700">Bienvenido, {user?.name}</span>
-        <button onClick={() => logout({ returnTo: window.location.origin })} className="text-sm text-red-600 hover:underline">
+        <button onClick={() => logout({ returnTo: "https://nutrify-nine.vercel.app/" })} className="text-sm text-red-600 hover:underline">
           Cerrar sesión
         </button>
       </div>
