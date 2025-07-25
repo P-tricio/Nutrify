@@ -1,3 +1,5 @@
+//NO FUNCIONAL
+
 import { useState } from "react";
 import FormInput from "./components/FormInput";
 import MealCard from "./components/MealCard";
