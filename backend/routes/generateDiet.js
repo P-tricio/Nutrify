@@ -19,8 +19,8 @@ const validateInput = [
   body('goal').optional().isString().trim()
 ];
 
-// Ruta protegida con JWT
-router.post('/', checkJwt, validateInput, async (req, res, next) => {
+// Ruta protegida con JWT (quitado momentáneamente)
+router.post('/', validateInput, async (req, res, next) => {
   try {
     console.log('Solicitud recibida:', {
       user: req.user?.sub || "No disponible",
