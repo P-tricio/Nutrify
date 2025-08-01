@@ -34,7 +34,7 @@ function App() {
   const { loginWithRedirect, logout, isAuthenticated, isLoading: authLoading, user } = useAuth0();
 
   const [formData, setFormData] = useState({
-    calories: "",
+    calories: "2000",
     mealsPerDay: "3",
     allergies: "",
     preferences: "",
@@ -55,8 +55,8 @@ function App() {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.calories || isNaN(formData.calories) || formData.calories < 1000 || formData.calories > 5000)
-      newErrors.calories = "Introduce entre 1000 y 5000 kcal";
+    if (!formData.calories || isNaN(formData.calories) || formData.calories < 1000 || formData.calories > 10000)
+      newErrors.calories = "Introduce entre 1000 y 10000 kcal";
     if (!formData.mealsPerDay || isNaN(formData.mealsPerDay) || formData.mealsPerDay < 1 || formData.mealsPerDay > 6)
       newErrors.mealsPerDay = "Introduce entre 1 y 6 comidas";
     if (!formData.goal) newErrors.goal = "Selecciona un objetivo";
