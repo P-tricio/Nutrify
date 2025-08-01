@@ -1,6 +1,7 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { useState } from "react";
 import LoadingSpinner from "./components/LoadingSpinner";
+import GenericSpinner from "./components/GenericSpinner";
 import DietForm from "./components/DietForm";
 import DietResults from "./components/DietResults";
 
@@ -166,7 +167,7 @@ function App() {
   if (authLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <LoadingSpinner />
+        <GenericSpinner />
       </div>
     );
   }
