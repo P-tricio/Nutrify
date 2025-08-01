@@ -16,7 +16,10 @@ const envFile = process.env.NODE_ENV === 'production'
   ? '.env.production' 
   : '.env';
 dotenv.config({ path: path.resolve(__dirname, envFile) });
-console.log("GROQ_API_KEY desde dotenv:", process.env.GROQ_API_KEY || 'NO CARGADA');
+console.log(
+  "GROQ_API_KEY loaded:",
+  process.env.GROQ_API_KEY ? "***" : "NO CARGADA"
+);
 
 console.log('Variables de entorno cargadas en server.js:', {
   PORT: process.env.PORT,
