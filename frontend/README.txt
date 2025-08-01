@@ -1,1 +1,0 @@
-⚠️ El entorno se reinició. Vuelve a subir el frontend para reconstruir el proyecto.
