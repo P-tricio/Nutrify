@@ -194,20 +194,7 @@ const DietForm = ({
                         type="number"
                         name="calories"
                         value={formData.calories || ''}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          const input = e.target;
-                          if (value === '' || (Number(value) >= 1000 && Number(value) <= 5000)) {
-                            handleChange({
-                              target: {
-                                name: 'calories',
-                                value: value === '' ? '' : Math.round(Number(value)).toString()
-                              }
-                            });
-                          } else {
-                            input.value = formData.calories || '';
-                          }
-                        }}
+                        onChange={handleChange}
                         onBlur={(e) => {
                           let value = Number(e.target.value);
                           if (isNaN(value) || value < 1000) value = 2000;
