@@ -210,7 +210,7 @@ const DietForm = ({
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-xl font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         placeholder="2000"
                         min="1000"
-                        max="5000"
+                        max="4000"
                         step="50"
                         required
                       />
