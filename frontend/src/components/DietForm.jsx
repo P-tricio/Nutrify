@@ -57,7 +57,7 @@ const DietForm = ({
     <div className="bg-white min-h-screen">
       <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8 w-full">
         <div className="max-w-3xl mx-auto text-center mb-12">
-          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">Generador de dietas personalizadas</h1>
+          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">Nutrify</h1>
           <p className="mt-3 text-xl text-gray-500">
             Crea un plan de alimentación adaptado a tus necesidades específicas
           </p>
@@ -198,7 +198,7 @@ const DietForm = ({
                         onBlur={(e) => {
                           let value = Number(e.target.value);
                           if (isNaN(value) || value < 1000) value = 2000;
-                          value = Math.max(1000, Math.min(5000, value));
+                          value = Math.max(1000, Math.min(4000, value));
                           e.target.value = value;
                           handleChange({
                             target: {
@@ -223,7 +223,7 @@ const DietForm = ({
                       onChange={(e) => handleChange({ target: { name: 'calories', value: e.target.value } })}
                       className="w-full accent-primary-600"
                       min="1000"
-                      max="5000"
+                      max="4000"
                       step="50"
                     />
                   </div>
