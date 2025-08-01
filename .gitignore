@@ -30,3 +30,8 @@ frontend/dist/
 .next/
 .vercel
 .netlify
+
+# Backup files
+*.bak
+*.backup
+*timestamp*.mjs

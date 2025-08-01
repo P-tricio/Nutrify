@@ -31,3 +31,7 @@ yarn-error.log*
 .next/
 .vercel
 .netlify
+# Backup files
+*.bak
+*.backup
+*timestamp*.mjs
