@@ -21,6 +21,7 @@ yarn-error.log*
 /dist
 /build
 /out
+frontend/dist/
 
 # Misc
 .DS_Store
@@ -29,6 +30,7 @@ yarn-error.log*
 .next/
 .vercel
 .netlify
+
 # Backup files
 *.bak
 *.backup
