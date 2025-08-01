@@ -216,7 +216,6 @@ const DietForm = ({
                       />
                       <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">kcal</span>
                     </div>
-                    <div className="text-xl font-semibold text-gray-900">{formData.calories} kcal</div>
                     <input
                       type="range"
                       name="calories"
