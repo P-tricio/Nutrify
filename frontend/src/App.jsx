@@ -4,6 +4,7 @@ import LoadingSpinner from "./components/LoadingSpinner";
 import GenericSpinner from "./components/GenericSpinner";
 import DietForm from "./components/DietForm";
 import DietResults from "./components/DietResults";
+import config from "./config.js";
 
 export const goalOptions = [
   { value: "perdida", label: "Pérdida de peso" },
@@ -33,6 +34,9 @@ export const preferenceOptions = [
 
 function App() {
   const { loginWithRedirect, logout, isAuthenticated, isLoading: authLoading, user } = useAuth0();
+
+  // Determine where the user should be redirected after logging out.
+  const logoutUrl = config.appUrl || window.location.origin;
 
   const [formData, setFormData] = useState({
     calories: "2000",
@@ -190,7 +194,7 @@ function App() {
     <div className="min-h-screen bg-neutral-50 p-3 sm:p-4">
       <div className="flex justify-between items-center mb-4">
         <span className="text-gray-700">Bienvenido, {user?.name}</span>
-        <button onClick={() => logout({ returnTo: "https://nutrify-nine.vercel.app/" })} className="text-sm text-red-600 hover:underline">
+        <button onClick={() => logout({ returnTo: logoutUrl })} className="text-sm text-red-600 hover:underline">
           Cerrar sesión
         </button>
       </div>
