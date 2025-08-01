@@ -233,6 +233,11 @@ const DietForm = ({
                       type="range"
                       name="calories"
                       value={formData.calories || 2500}
+                    <div className="text-xl font-semibold text-gray-900">{formData.calories} kcal</div>
+                    <input
+                      type="range"
+                      name="calories"
+                      value={formData.calories || 2000}
                       onChange={(e) => handleChange({ target: { name: 'calories', value: e.target.value } })}
                       className="w-full accent-primary-600"
                       min="1000"
