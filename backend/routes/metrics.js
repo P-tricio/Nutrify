@@ -58,13 +58,13 @@ const router = express.Router();
  *                       completionTokens:
  *                         type: number
  */
-router.get('/usage', (req, res) => {
+router.get('/usage', (req, res, next) => {
   try {
     const stats = getUsageStats();
     res.json(stats);
   } catch (error) {
     console.error('Error al obtener métricas:', error);
-    res.status(500).json({ error: 'Error al obtener métricas' });
+    next(error);
   }
 });
 

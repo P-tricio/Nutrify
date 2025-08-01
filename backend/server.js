@@ -110,22 +110,6 @@ app.use((req, res, next) => {
   });
 });
 
-// Manejador de errores global
-app.use((err, req, res, next) => {
-  console.error('Error en el servidor:', {
-    message: err.message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-    url: req.originalUrl,
-    method: req.method,
-    body: req.body
-  });
-
-  res.status(err.status || 500).json({
-    success: false,
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Error interno del servidor',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-  });
-});
 
 const PORT = process.env.PORT || 4000;
 const HOST = process.env.HOST || '0.0.0.0';

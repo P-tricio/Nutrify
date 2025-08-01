@@ -45,11 +45,7 @@ router.post('/', validateInput, async (req, res, next) => {
       code: error.code,
       originalError: error.originalError?.message || error.originalError || null
     });
-
-    res.status(error.status || 500).json({
-      success: false,
-      message: error.message || "Error interno del servidor"
-    });
+    next(error);
   }
 });
 
