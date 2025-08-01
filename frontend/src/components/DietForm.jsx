@@ -188,51 +188,57 @@ const DietForm = ({
                 <div className="space-y-4">
                 <div className="space-y-2 text-center">
                   <h3 className="text-sm font-medium text-gray-700 mb-2">Calorías diarias</h3>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      name="calories"
-                      value={formData.calories || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        // Actualizar el valor local inmediatamente
-                        const input = e.target;
-                        if (value === '' || (Number(value) >= 1000 && Number(value) <= 10000)) {
-                          // Actualizar el estado del formulario
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <input
+                        type="number"
+                        name="calories"
+                        value={formData.calories || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          const input = e.target;
+                          if (value === '' || (Number(value) >= 1000 && Number(value) <= 5000)) {
+                            handleChange({
+                              target: {
+                                name: 'calories',
+                                value: value === '' ? '' : Math.round(Number(value)).toString()
+                              }
+                            });
+                          } else {
+                            input.value = formData.calories || '';
+                          }
+                        }}
+                        onBlur={(e) => {
+                          let value = Number(e.target.value);
+                          if (isNaN(value) || value < 1000) value = 2000;
+                          value = Math.max(1000, Math.min(5000, value));
+                          e.target.value = value;
                           handleChange({
                             target: {
                               name: 'calories',
-                              value: value === '' ? '' : Math.round(Number(value)).toString()
+                              value: value.toString()
                             }
                           });
-                        } else {
-                          // Si el valor no es válido, mantener el valor anterior
-                          input.value = formData.calories || '';
-                        }
-                      }}
-                      onBlur={(e) => {
-                        // Asegurar que el valor esté dentro del rango al perder el foco
-                        let value = Number(e.target.value);
-                        if (isNaN(value) || value < 1000) value = 2000;
-                        value = Math.max(1000, Math.min(10000, value));
-                        // Actualizar el valor del input directamente
-                        e.target.value = value;
-                        // Actualizar el estado del formulario
-                        handleChange({
-                          target: {
-                            name: 'calories',
-                            value: value.toString()
-                          }
-                        });
-                      }}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-xl font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      placeholder="2000"
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-xl font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        placeholder="2000"
+                        min="1000"
+                        max="5000"
+                        step="50"
+                        required
+                      />
+                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">kcal</span>
+                    </div>
+                    <input
+                      type="range"
+                      name="calories"
+                      value={formData.calories || 2500}
+                      onChange={(e) => handleChange({ target: { name: 'calories', value: e.target.value } })}
+                      className="w-full accent-primary-600"
                       min="1000"
-                      max="10000"
+                      max="5000"
                       step="50"
-                      required
                     />
-                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">kcal</span>
                   </div>
                   <p className="text-xs text-gray-500">
                     <button
